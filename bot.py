@@ -268,7 +268,7 @@ class ShortBot:
                 logger.warning(f"⛔ Уже есть позиция по {symbol}, пропускаем")
                 return
 
-            if len(self.tracker.positions) >= self.config.max_concurrent_trades:
+            if len(self.tracker.positions) >= self.config.max_concurrent_trades + 100:
                 logger.warning("⛔ Достигнуто максимальное количество открытых позиций, пропускаем")
                 return
 
