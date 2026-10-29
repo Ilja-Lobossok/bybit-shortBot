@@ -12,7 +12,9 @@ import json
 import logging
 import signal
 import math
-from datetime import datetime
+from copy import deepcopy
+from decimal import Decimal, ROUND_DOWN
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, List, Tuple
 
 from dotenv import load_dotenv
@@ -21,14 +23,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Создаем папку для логов
-os.makedirs('data/logs', exist_ok=True)
+log_dir = os.path.join(os.getenv('DATA_DIR', './data'), 'logs')
+os.makedirs(log_dir, exist_ok=True)
 
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('data/logs/bot.log'),
+        logging.FileHandler(os.path.join(log_dir, 'bot.log'), encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -40,6 +43,7 @@ from live.bybit_client import BybitClient
 from live.order_manager import OrderManager
 from live.position_tracker import PositionTracker
 from live.telegram_notifier import TelegramNotifier
+from live.accounting import AccountBalance, ClosedTrade
 
 # =====================================
 # РИСК МЕНЕДЖЕР
@@ -64,9 +68,10 @@ class ShortBot:
             testnet=os.getenv("BYBIT_TESTNET", "false").lower() == "true"
         )
 
-        self.initial_balance = self.get_balance()
-        self.risk_manager = RiskManager(initial_capital=self.initial_balance)
         self.tracker = PositionTracker(os.path.join(self.config.data_dir, "state.json"))
+        self.account_balance = None
+        self.risk_manager = None
+        self.refresh_balance()
         self.notifier = TelegramNotifier(
             bot_token=os.getenv("TELEGRAM_BOT_TOKEN"),
             chat_id=os.getenv("TELEGRAM_CHAT_ID")
@@ -80,18 +85,34 @@ class ShortBot:
 
         logger.info("=" * 60)
         logger.info("БОТ ЗАПУЩЕН")
-        logger.info(f"Начальный баланс: ${self.initial_balance:.2f}")
+        logger.info("Баланс: %s", self.balance_summary())
         logger.info(f"Параметры: pump={self.config.pump_threshold*100}%, tp={self.config.tp_percent*100}%, stall={self.config.stall_bars}")
         logger.info("=" * 60)
 
-    def get_balance(self) -> float:
+    def refresh_balance(self) -> bool:
+        """Invalidate stale balances on failure; only exchange amounts allow entries."""
+        self.account_balance = None
         try:
             response = self.client.get_wallet_balance(accountType="UNIFIED", coin="USDT")
-            if response.get("retCode") == 0:
-                return float(response["result"]["list"][0]["coin"][0]["walletBalance"])
+            balance = AccountBalance.from_response(response)
+            if self.risk_manager is None:
+                self.risk_manager = RiskManager.from_state(self.tracker.risk_state, balance.wallet)
+            else:
+                self.risk_manager.sync_capital(balance.wallet)
+            self.tracker.risk_state = self.risk_manager.to_state()
+            self.tracker.save()
+            self.account_balance = balance
+            return True
         except Exception as e:
-            logger.error(f"Ошибка получения баланса: {e}")
-        return self.config.initial_capital
+            logger.error("Баланс не подтвержден, новые входы запрещены: %s", e)
+            return False
+
+    def balance_summary(self):
+        if self.account_balance is None:
+            return "UNAVAILABLE (новые входы запрещены)"
+        balance = self.account_balance
+        return (f"USDT wallet={balance.wallet:.2f}, equity={balance.equity:.2f}, "
+                f"unrealised_pnl={balance.unrealised_pnl:+.2f}, available={balance.available:.2f}")
 
     def signal_handler(self, signum, frame):
         logger.info("Получен сигнал остановки, завершаем работу...")
@@ -259,6 +280,8 @@ class ShortBot:
 
     def reload_from_file(self):
         self.tracker.load()
+        self.risk_manager = None
+        self.refresh_balance()
         logger.info(f"Перезагружено из файла: {len(self.tracker.positions)} positions, {len(self.tracker.watchlist)} watchlist")
 
     def open_position(self, symbol: str, data: Dict[str, Any]):
@@ -272,20 +295,22 @@ class ShortBot:
                 logger.warning("⛔ Достигнуто максимальное количество открытых позиций, пропускаем")
                 return
 
-            ok, reason = self.risk_manager.can_trade_today(datetime.now().date()) if hasattr(self.risk_manager, 'can_trade_today') else (True, '')
+            if not self.refresh_balance():
+                return
+            ok, reason = self.risk_manager.can_trade_today(datetime.now(timezone.utc).date())
             if not ok:
                 logger.warning(f"⛔ Пропуск открытия: {reason}")
                 return
 
             # Проверка на бирже (чтобы избежать дубликатов)
             existing_positions = self.client.get_positions(symbol=symbol)
-            if existing_positions and len(existing_positions) > 0 and float(existing_positions[0]['size']) > 0:
-                logger.warning(f"⛔ На бирже уже есть позиция по {symbol} (размер: {existing_positions[0]['size']}), пропускаем")
+            if any(float(row['size']) > 0 for row in existing_positions):
+                logger.warning(f"⛔ На бирже уже есть позиция по {symbol}, пропускаем")
                 return
 
             # Баланс
-            available = self.get_balance()
-            position_usdt = self.config.base_risk_per_trade * self.risk_manager.current_capital
+            available = self.account_balance.available
+            position_usdt = self.config.base_risk_per_trade * self.account_balance.wallet
             multiplier = self.risk_manager.get_position_multiplier(symbol)
             position_usdt *= multiplier
             if available < position_usdt * 1.1:
@@ -309,17 +334,20 @@ class ShortBot:
             qty = position_usdt / current_price
             qty_step = filters["qty_step"]
             if qty_step > 0:
-                qty = math.floor(qty / qty_step) * qty_step
+                step = Decimal(str(qty_step))
+                qty = float((Decimal(str(qty)) / step).to_integral_value(rounding=ROUND_DOWN) * step)
             
             min_qty = filters["min_qty"]
             qty = max(qty, min_qty)
             if qty * current_price < filters["min_notional"]:
                 qty = math.ceil(filters["min_notional"] / current_price / qty_step) * qty_step
                 logger.info(f"📊 Увеличили количество до {qty} для мин. суммы")
+            if qty * current_price * 1.1 > available:
+                logger.warning("Минимальный ордер %s превышает доступный баланс", symbol)
+                return
             
             # Форматирование qty (фикс invalid qty)
-            precision = len(str(qty_step).split('.')[-1]) if '.' in str(qty_step) else 0
-            str_qty = f"{qty:.{precision}f}".rstrip('0').rstrip('.') if '.' in f"{qty}" else f"{qty}"
+            str_qty = format(Decimal(str(qty)).normalize(), 'f')
             
             # TP/SL расчет
             local_high = data["local_high"]
@@ -335,6 +363,7 @@ class ShortBot:
             
             # ОТКРЫТИЕ ПОЗИЦИИ С TP/SL
             logger.info(f"🚀 Открываем SHORT {symbol} по рынку, qty={str_qty}")
+            opened_at_ms = int(time.time() * 1000)
             response = self.client.place_order(
                 category=self.config.category,
                 symbol=symbol,
@@ -354,31 +383,40 @@ class ShortBot:
                 logger.error(f"❌ Ошибка открытия: {response.get('retMsg')}")
                 return
             
-            # Получение реальных данных (фикс partial fill)
-            time.sleep(1)
-            position_info = self.client.get_positions(symbol=symbol)
-            if position_info and len(position_info) > 0:
-                actual_entry = float(position_info[0]['avgPrice'])
-                actual_qty = float(position_info[0]['size'])
-                logger.info(f"✅ Реальные данные: entry={actual_entry:.6f}, qty={actual_qty}")
-            else:
-                actual_entry = current_price
-                actual_qty = qty
-                logger.warning(f"⚠️ Не удалось получить позицию, используем расчетные данные")
+            # Persist the accepted order before another API request can fail.
+            # The provisional record blocks a duplicate entry until reconciled.
             
             # Сохранение позиции
             position = {
                 "symbol": symbol,
-                "entry_price": actual_entry,
+                "entry_price": current_price,
                 "tp_price": tp_price,
                 "sl_price": sl_price,
-                "qty": actual_qty,
-                "open_time": int(time.time()),
+                "qty": qty,
+                "open_time": opened_at_ms // 1000,
+                "opened_at_ms": opened_at_ms,
+                "entry_order_id": response["result"]["orderId"],
+                "entry_pending": True,
                 "multiplier": multiplier,
                 "position_usdt": position_usdt,
                 "local_high": local_high
             }
             self.tracker.add_position(position)
+
+            time.sleep(1)
+            position_info = self.client.get_positions(symbol=symbol)
+            active_short = next((row for row in position_info if row.get('side') == 'Sell'
+                                 and float(row['size']) > 0), None)
+            if active_short is None:
+                logger.warning("Ожидаем подтверждения исполнения %s", symbol)
+                return
+            actual_entry = float(active_short['avgPrice'])
+            actual_qty = float(active_short['size'])
+            if not math.isfinite(actual_entry) or actual_entry <= 0:
+                raise ValueError("Invalid executed entry price")
+            position.update(entry_price=actual_entry, qty=actual_qty, entry_pending=False)
+            self.tracker.save()
+            logger.info(f"✅ Реальные данные: entry={actual_entry:.6f}, qty={actual_qty}")
             
             # Удаление из watchlist
             if symbol in self.tracker.watchlist:
@@ -388,13 +426,13 @@ class ShortBot:
             # Уведомление
             self.notifier.send_trade_open(
                 symbol, actual_entry, tp_price, sl_price,
-                position_usdt, multiplier
+                actual_qty * actual_entry, multiplier
             )
             logger.info(f"✅✅✅ ПОЗИЦИЯ ОТКРЫТА {symbol}")
             logger.info(f"   Вход: ${actual_entry:.6f}")
             logger.info(f"   TP: ${tp_price:.6f} ({(tp_price/actual_entry-1)*100:.1f}%)")
             logger.info(f"   SL: ${sl_price:.6f} ({self.config.sl_multiplier}x)")
-            logger.info(f"   Размер: ${position_usdt:.2f} ({multiplier:.1f}x от 1%)")
+            logger.info(f"   Фактическая сумма входа: ${actual_qty * actual_entry:.2f}")
             
         except Exception as e:
             logger.error(f"❌ Ошибка открытия позиции {symbol}: {e}", exc_info=True)
@@ -402,53 +440,53 @@ class ShortBot:
     def check_positions(self):
         for symbol, position in list(self.tracker.positions.items()):
             try:
-                # Проверяем наличие на бирже
                 position_info = self.client.get_positions(symbol)
-                if not position_info or len(position_info) == 0 or float(position_info[0]['size']) == 0:
-                    logger.info(f"📌 Позиция {symbol} закрылась на бирже, удаляем из трекера")
-
-                    # уведомление/параметры
-                    entry = position.get("entry_price", 0)
-
-                    # если по API нет avgPrice, берём текущую цену тикера (лучше чем 0)
-                    if position_info and len(position_info) > 0:
-                        close_price = float(position_info[0].get('avgPrice', 0))
-                    else:
-                        close_price = 0
-                        tick = next((t for t in self.get_all_tickers() if t["symbol"] == symbol), None)
-                        if tick:
-                            close_price = float(tick.get("lastPrice", 0))
-
-                    pnl_usdt = (entry - close_price) * position.get("qty", 0)
-                    pnl_percent = (entry - close_price) / entry * 100 if entry != 0 else 0
-
-                    # уведомляем и обновляем статистику
-                    self.notifier.send_trade_close(
-                        symbol, entry, close_price, pnl_usdt, pnl_percent,
-                        "TP/SL", "авто"
-                    )
-
-                    # расчёт риска
-                    try:
-                        self.risk_manager.on_trade_result(pnl_usdt, pnl_percent, symbol)
-                    except Exception:
-                        pass
-
-                    # удаляем позицию и ставим отсчёт cooldown
-                    self.tracker.remove_position(symbol)
+                active = [row for row in position_info if float(row['size']) > 0]
+                if position.get('entry_pending'):
+                    fill = self.client.get_entry_fill(symbol, position['entry_order_id'])
+                    if fill is None:
+                        continue
+                    actual_qty, actual_entry = fill
+                    if actual_qty == 0:
+                        self.tracker.remove_position(symbol)  # IOC cancelled without fills.
+                        continue
+                    position.update(qty=actual_qty, entry_price=actual_entry, entry_pending=False)
+                    self.tracker.watchlist.pop(symbol, None)
+                    self.tracker.save()
+                    self.notifier.send_trade_open(symbol, actual_entry, position['tp_price'],
+                                                  position['sl_price'], actual_qty * actual_entry,
+                                                  position['multiplier'])
+                if active:
                     continue
-
-                # Проверка ключей
-                required_keys = ['tp_price', 'sl_price', 'qty', 'entry_price']
-                missing = [k for k in required_keys if k not in position]
-                if missing:
-                    logger.error(f"⚠️ Неполные данные позиции {symbol} (отсутствуют: {missing}), удаляем")
-                    # используем helper чтобы установить cooldown
-                    self.tracker.remove_position(symbol)
+                # An absent position does not yet prove its closing price or PnL.
+                # Legacy open_time was saved after the fill, so allow 60s of skew.
+                start_ms = position.get('opened_at_ms', (int(position['open_time']) - 60) * 1000)
+                end_ms = int(time.time() * 1000)
+                records = self.client.get_closed_pnl(symbol, start_ms, end_ms)
+                trade = ClosedTrade.from_records(symbol, position, records, start_ms, end_ms)
+                if trade is None:
+                    logger.warning("Ожидаем полную историю закрытия %s; запись сохранена", symbol)
                     continue
-
+                if self.risk_manager is None:
+                    logger.warning("Учет закрытия %s отложен до подтверждения баланса", symbol)
+                    continue
+                # Persist accounting and removal in one atomic state replacement.
+                updated_risk = deepcopy(self.risk_manager)
+                updated_risk.on_trade_result(
+                    trade.pnl, trade.pnl_percent, symbol,
+                    datetime.fromtimestamp(trade.closed_at_ms / 1000, timezone.utc), trade.order_ids,
+                )
+                self.tracker.close_position(symbol, updated_risk.to_state())
+                self.risk_manager = updated_risk
+                duration = max(0, trade.closed_at_ms // 1000 - int(position['open_time']))
+                self.notifier.send_trade_close(
+                    symbol, trade.entry, trade.exit, trade.pnl, trade.pnl_percent,
+                    "Подтверждено Bybit (closed PnL)", f"{duration // 60} мин",
+                )
+                logger.info("Закрытие подтверждено Bybit: %s exit=%.8f net_pnl=%+.4f USDT",
+                            symbol, trade.exit, trade.pnl)
             except Exception as e:
-                logger.error(f"Ошибка проверки {symbol}: {e}")
+                logger.error("Проверка %s не завершена; позиция сохранена: %s", symbol, e)
 
 
     def run(self):
@@ -456,15 +494,15 @@ class ShortBot:
         logger.info("Запуск основного цикла")
         
         # Для суточной статистики
-        last_daily_report = datetime.now().date()
+        last_daily_report = datetime.now(timezone.utc).date()
         
         while self.running:
             try:
                 current_bar = self.get_current_bar_close()
                 
                 # Суточная статистика в 00:05
-                today = datetime.now().date()
-                if today != last_daily_report and datetime.now().hour == 0 and datetime.now().minute >= 5:
+                today = datetime.now(timezone.utc).date()
+                if today != last_daily_report and datetime.now(timezone.utc).minute >= 5:
                     self.send_daily_stats()
                     last_daily_report = today
                 
@@ -472,6 +510,9 @@ class ShortBot:
                     self.last_bar_close = current_bar
                     logger.info(f"Новая свеча: {datetime.fromtimestamp(current_bar)}")
                     
+                    # Reconcile closures before evaluating today's entry limits.
+                    self.refresh_balance()
+                    self.check_positions()
                     tickers = self.get_all_tickers()
                     candidates = []
                     for t in tickers:
@@ -488,11 +529,11 @@ class ShortBot:
                         for symbol, data in ready:
                             self.open_position(symbol, data)
 
-                    self.check_positions()
+                    self.refresh_balance()
 
                     logger.info(f"Статистика: watchlist={len(self.tracker.watchlist)}, "
                             f"positions={len(self.tracker.positions)}, "
-                            f"balance=${self.risk_manager.current_capital:.2f}")
+                            f"{self.balance_summary()}")
 
                 time.sleep(self.config.wake_seconds)
 
@@ -508,7 +549,9 @@ class ShortBot:
         """Отправить суточную статистику"""
         try:
             # Собираем статистику за сегодня
-            today = datetime.now().date()
+            if not self.refresh_balance():
+                return
+            today = datetime.now(timezone.utc).date() - timedelta(days=1)
             today_trades = [t for t in self.risk_manager.trades_history 
                         if datetime.fromisoformat(t['time']).date() == today]
             
@@ -521,7 +564,9 @@ class ShortBot:
                 trades=trades_count,
                 profitable=profitable,
                 pnl=total_pnl,
-                balance=self.risk_manager.current_capital
+                balance=self.account_balance.wallet,
+                equity=self.account_balance.equity,
+                unrealised_pnl=self.account_balance.unrealised_pnl,
             )
             logger.info(f"📊 Суточная статистика отправлена: сделок={trades_count}, PnL=${total_pnl:.2f}")
         except Exception as e:

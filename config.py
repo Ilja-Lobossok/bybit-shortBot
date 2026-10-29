@@ -16,7 +16,7 @@ class BotConfig:
     max_daily_gain: float = 20.0               # max daily move
     
     # Risk management
-    base_risk_per_trade: float = 0.04          # 1% of portfolio
+    base_risk_per_trade: float = 0.04          # base notional = 4% of USDT wallet, before multiplier
     initial_capital: float = 1000.0
     max_concurrent_trades: int = 100
     

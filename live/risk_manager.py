@@ -1,4 +1,6 @@
-from datetime import datetime
+from copy import deepcopy
+from datetime import datetime, timezone
+import math
 
 # risk_manager.py
 
@@ -14,6 +16,41 @@ class RiskManager:
         self.coin_stats = {}  # История по каждой монете
         self.consecutive_losses = 0
         self.trades_history = []  # список закрытых сделок
+
+    def sync_capital(self, wallet_balance):
+        """Sizing uses an exchange snapshot, never accumulated estimates."""
+        if not math.isfinite(wallet_balance):
+            raise ValueError("Invalid wallet balance")
+        self.current_capital = wallet_balance
+        self.peak_capital = max(self.peak_capital, wallet_balance)
+
+    def to_state(self):
+        return deepcopy({
+            "version": 1, "initial_capital": self.initial_capital,
+            "current_capital": self.current_capital, "peak_capital": self.peak_capital,
+            "today_pnl": self.today_pnl,
+            "current_date": self.current_date.isoformat() if self.current_date else None,
+            "coin_stats": self.coin_stats, "consecutive_losses": self.consecutive_losses,
+            "trades_history": self.trades_history,
+        })
+
+    @classmethod
+    def from_state(cls, state, wallet_balance):
+        manager = cls(initial_capital=wallet_balance)
+        if state:
+            if state["version"] != 1:
+                raise ValueError("Unsupported risk state version")
+            for key in ("initial_capital", "peak_capital", "today_pnl"):
+                value = float(state[key])
+                if not math.isfinite(value):
+                    raise ValueError("Invalid saved risk amount")
+                setattr(manager, key, value)
+            manager.current_date = datetime.fromisoformat(state["current_date"]).date() if state["current_date"] else None
+            manager.coin_stats = deepcopy(state["coin_stats"])
+            manager.consecutive_losses = int(state["consecutive_losses"])
+            manager.trades_history = deepcopy(state["trades_history"])
+        manager.sync_capital(wallet_balance)
+        return manager
         
     def update_stats(self, symbol, pnl_percent):
         """Обновляем статистику по монете"""
@@ -37,9 +74,9 @@ class RiskManager:
     def get_position_multiplier(self, symbol):
         """
         Возвращает множитель размера позиции:
-        1.0 = полный размер (1% от капитала)
-        0.5 = половинный размер (0.5%)
-        0.25 = четверть размера (0.25%)
+        1.0 = полный базовый размер из BotConfig
+        0.5 = половинный базовый размер
+        0.25 = четверть базового размера
         """
         if symbol not in self.coin_stats:
             return 0.5  # Новая монета - половинный риск
@@ -75,6 +112,8 @@ class RiskManager:
             return False, f"Дневной лимит убытка: {self.today_pnl:.2f}"
         
         # Не торгуем если общая просадка > 20%
+        if self.current_capital <= 0 or self.peak_capital <= 0:
+            return False, "Нет подтвержденного положительного баланса"
         drawdown = (self.peak_capital - self.current_capital) / self.peak_capital
         if drawdown > 0.20:
             return False, f"Просадка {drawdown:.1%} > 20%"
@@ -85,27 +124,33 @@ class RiskManager:
         
         return True, "OK"
     
-    def on_trade_result(self, pnl_usdt, pnl_percent, symbol):
-        self.current_capital += pnl_usdt
-        self.today_pnl += pnl_usdt
-        
-        if self.current_capital > self.peak_capital:
-            self.peak_capital = self.current_capital
-        
-        if pnl_usdt < 0:
-            self.consecutive_losses += 1
-        else:
-            self.consecutive_losses = 0
+    def on_trade_result(self, pnl_usdt, pnl_percent, symbol, closed_at=None, order_ids=None):
+        closed_at = closed_at or datetime.now(timezone.utc)
+        # Roll the day before adding PnL; a delayed yesterday's close is not today's loss.
+        today = datetime.now(timezone.utc).date()
+        if self.current_date != today:
+            self.current_date = today
+            self.today_pnl = 0
+        if closed_at.date() == today:
+            self.today_pnl += pnl_usdt
         
         self.update_stats(symbol, pnl_percent)
         
         # Добавляем сделку в историю
         self.trades_history.append({
-            'time': datetime.now().isoformat(),
+            'time': closed_at.isoformat(),
             'symbol': symbol,
             'pnl_usdt': pnl_usdt,
-            'pnl_percent': pnl_percent
+            'pnl_percent': pnl_percent,
+            'order_ids': order_ids or [],
         })
+        # Positions can be reconciled in a different order than they closed.
+        self.trades_history.sort(key=lambda trade: datetime.fromisoformat(trade['time']))
+        self.consecutive_losses = 0
+        for trade in reversed(self.trades_history):
+            if trade['pnl_usdt'] >= 0:
+                break
+            self.consecutive_losses += 1
         # Храним только последние 1000 сделок
         if len(self.trades_history) > 1000:
             self.trades_history = self.trades_history[-1000:]
