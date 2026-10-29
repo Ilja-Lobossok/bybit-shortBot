@@ -1,7 +1,7 @@
 ﻿import logging
 import requests
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +42,7 @@ class TelegramNotifier:
         tp_pct = ((tp / entry) - 1) * 100
         sl_pct = ((sl / entry) - 1) * 100
         
-        # Добавляем 2 часа к времени сервера (Франкфурт)
-        server_time = datetime.now()
-        local_time = server_time + timedelta(hours=2)
+        local_time = datetime.now(timezone.utc)
         
         text = f"""
 🔵 НОВАЯ СДЕЛКА
@@ -53,7 +51,7 @@ class TelegramNotifier:
 TP: ${tp:.4f} ({tp_pct:+.1f}%)
 SL: ${sl:.4f} ({sl_pct:+.1f}%)
 Размер: ${size_usdt:.2f} ({multiplier:.1f}x)
-Время: {local_time.strftime('%Y-%m-%d %H:%M:%S')}
+Время (UTC): {local_time.strftime('%Y-%m-%d %H:%M:%S')}
 """
         self.send_message(text)
     
@@ -65,9 +63,7 @@ SL: ${sl:.4f} ({sl_pct:+.1f}%)
         emoji = "🟢" if pnl_usdt > 0 else "🔴"
         sign = "+" if pnl_usdt > 0 else ""
         
-        # Добавляем 2 часа к времени сервера
-        server_time = datetime.now()
-        local_time = server_time + timedelta(hours=2)
+        local_time = datetime.now(timezone.utc)
         
         text = f"""
 {emoji} ЗАКРЫТИЕ СДЕЛКИ
@@ -75,14 +71,15 @@ SL: ${sl:.4f} ({sl_pct:+.1f}%)
 Причина: {reason}
 Вход: ${entry:.4f}
 Выход: ${exit_price:.4f}
-PnL: {sign}${pnl_usdt:.2f} ({sign}{pnl_percent:.1f}%)
+PnL Bybit, включая комиссии и funding: {sign}${pnl_usdt:.4f} ({sign}{pnl_percent:.1f}% от суммы входа)
 Длительность: {duration}
-Время: {local_time.strftime('%Y-%m-%d %H:%M:%S')}
+Время (UTC): {local_time.strftime('%Y-%m-%d %H:%M:%S')}
 """
         self.send_message(text)
     
     def send_daily_stats(self, date: str, trades: int, profitable: int, 
-                         pnl: float, balance: float):
+                         pnl: float, balance: float, equity: float,
+                         unrealised_pnl: float):
         if not self.enabled:
             return
         
@@ -91,11 +88,14 @@ PnL: {sign}${pnl_usdt:.2f} ({sign}{pnl_percent:.1f}%)
         
         text = f"""
 📊 ДНЕВНАЯ СТАТИСТИКА
-Дата: {date}
+Дата (UTC): {date}
 Сделок: {trades}
 Прибыльных: {profitable} ({winrate:.1f}%)
-Общий PnL: {sign}${pnl:.2f}
-Текущий баланс: ${balance:.2f}
+Подтвержденный PnL закрытых сделок: {sign}${pnl:.4f}
+USDT wallet сейчас: {balance:.2f}
+USDT equity сейчас: {equity:.2f}
+Плавающий PnL сейчас: {unrealised_pnl:+.2f} USDT
+Учет закрытий ведется с установки исправления.
 """
         self.send_message(text)
     

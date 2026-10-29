@@ -1,5 +1,6 @@
 ﻿import time
 import logging
+import math
 from typing import Dict, Any, Optional, List
 from pybit.unified_trading import HTTP
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -107,17 +108,62 @@ class BybitClient:
         return response
     
     def get_positions(self, symbol: str) -> List[Dict[str, Any]]:
-        """Получить информацию о позиции по символу"""
-        try:
-            response = self.session.get_positions(
-                category=self.category,
-                symbol=symbol
-            )
-            if response.get("retCode") == 0:
-                return response["result"]["list"]
-            else:
-                logger.error(f"Ошибка получения позиции {symbol}: {response.get('retMsg')}")
-                return []
-        except Exception as e:
-            logger.error(f"Ошибка получения позиции {symbol}: {e}")
-            return []
+        """An API failure must never look like an absent position."""
+        response = self.session.get_positions(category=self.category, symbol=symbol)
+        if response.get("retCode") != 0:
+            raise RuntimeError(f"Position query failed for {symbol}: {response.get('retMsg')}")
+        rows = response["result"]["list"]
+        if not isinstance(rows, list):
+            raise ValueError("Malformed position response")
+        for row in rows:
+            size = float(row["size"])
+            if row["symbol"] != symbol or not math.isfinite(size) or size < 0:
+                raise ValueError("Invalid position response")
+            if size > 0 and row.get("side") not in ("Buy", "Sell"):
+                raise ValueError("Unknown position side")
+        return rows
+
+    def get_entry_fill(self, symbol: str, order_id: str):
+        response = self.session.get_order_history(category=self.category, symbol=symbol, orderId=order_id)
+        if response.get("retCode") != 0:
+            raise RuntimeError("Entry order query failed")
+        for row in response['result']['list']:
+            if row['orderId'] != order_id or row['symbol'] != symbol:
+                raise ValueError("Entry order identity mismatch")
+            if row['orderStatus'] not in ('Filled', 'Cancelled', 'PartiallyFilledCanceled', 'Rejected', 'Deactivated'):
+                return None
+            qty = float(row['cumExecQty'])
+            price = float(row['avgPrice']) if qty else 0.0
+            if not math.isfinite(qty) or qty < 0 or not math.isfinite(price) or (qty > 0 and price <= 0):
+                raise ValueError("Invalid entry execution")
+            return qty, price
+        return None
+
+    def get_closed_pnl(self, symbol: str, start_ms: int, end_ms: int) -> List[Dict[str, Any]]:
+        """Read the full holding period in API-supported seven-day windows."""
+        rows = []
+        window_start = start_ms
+        while window_start <= end_ms:
+            window_end = min(end_ms, window_start + 7 * 24 * 60 * 60 * 1000 - 1)
+            cursor = None
+            seen_cursors = set()
+            while True:
+                params = dict(category=self.category, symbol=symbol, startTime=window_start,
+                              endTime=window_end, limit=100)
+                if cursor:
+                    params["cursor"] = cursor
+                response = self.session.get_closed_pnl(**params)
+                if response.get("retCode") != 0:
+                    raise RuntimeError(f"Closed PnL query failed: {response.get('retMsg')}")
+                page = response["result"]["list"]
+                if not isinstance(page, list):
+                    raise ValueError("Malformed closed PnL response")
+                rows.extend(page)
+                cursor = response["result"].get("nextPageCursor")
+                if not cursor:
+                    break
+                if cursor in seen_cursors:
+                    raise ValueError("Repeated closed PnL cursor")
+                seen_cursors.add(cursor)
+            window_start = window_end + 1
+        return rows
