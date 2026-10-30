@@ -4,6 +4,7 @@ import math
 from typing import Dict, Any, Optional, List
 from pybit.unified_trading import HTTP
 from tenacity import retry, stop_after_attempt, wait_exponential
+from monitoring.runtime import observe_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,11 @@ class BybitClient:
         self.rate_limit_remaining = 50
         self.rate_limit_reset = 0
         self.category = "linear"
+
+    def _request(self, operation, *args, **kwargs):
+        """Observe one existing SDK invocation without adding a retry or request."""
+        return observe_api_call(getattr(self, 'monitoring', None), operation,
+                                getattr(self.session, operation), *args, **kwargs)
     
     @retry(
         stop=stop_after_attempt(3),
@@ -30,7 +36,7 @@ class BybitClient:
         if symbol:
             params["symbol"] = symbol
             
-        response = self.session.get_instruments_info(**params)
+        response = self._request("get_instruments_info", **params)
         
         if response.get("retCode") != 0:
             raise RuntimeError(f"API Error: {response.get('retMsg')}")
@@ -44,7 +50,7 @@ class BybitClient:
     )
     def get_tickers(self) -> Dict[str, Any]:
         """Получить все тикеры"""
-        response = self.session.get_tickers(category="linear")
+        response = self._request("get_tickers", category="linear")
         
         if response.get("retCode") != 0:
             raise RuntimeError(f"API Error: {response.get('retMsg')}")
@@ -58,7 +64,7 @@ class BybitClient:
     )
     def get_klines(self, symbol: str, interval: str, limit: int = 5) -> Dict[str, Any]:
         """Получить свечи"""
-        response = self.session.get_kline(
+        response = self._request("get_kline",
             category="linear",
             symbol=symbol,
             interval=interval,
@@ -93,7 +99,7 @@ class BybitClient:
     
     def get_wallet_balance(self, **kwargs) -> Dict[str, Any]:
         """Получить баланс кошелька"""
-        response = self.session.get_wallet_balance(**kwargs)
+        response = self._request("get_wallet_balance", **kwargs)
         if response.get("retCode") != 0:
             raise RuntimeError(f"API Error: {response.get('retMsg')}")
         self._update_rate_limits(response)
@@ -101,7 +107,7 @@ class BybitClient:
     
     def place_order(self, **kwargs) -> Dict[str, Any]:
         """Разместить ордер"""
-        response = self.session.place_order(**kwargs)
+        response = self._request("place_order", **kwargs)
         if response.get("retCode") != 0:
             raise RuntimeError(f"API Error: {response.get('retMsg')}")
         self._update_rate_limits(response)
@@ -109,7 +115,7 @@ class BybitClient:
     
     def get_positions(self, symbol: str) -> List[Dict[str, Any]]:
         """An API failure must never look like an absent position."""
-        response = self.session.get_positions(category=self.category, symbol=symbol)
+        response = self._request("get_positions", category=self.category, symbol=symbol)
         if response.get("retCode") != 0:
             raise RuntimeError(f"Position query failed for {symbol}: {response.get('retMsg')}")
         rows = response["result"]["list"]
@@ -124,7 +130,7 @@ class BybitClient:
         return rows
 
     def get_entry_fill(self, symbol: str, order_id: str):
-        response = self.session.get_order_history(category=self.category, symbol=symbol, orderId=order_id)
+        response = self._request("get_order_history", category=self.category, symbol=symbol, orderId=order_id)
         if response.get("retCode") != 0:
             raise RuntimeError("Entry order query failed")
         for row in response['result']['list']:
@@ -152,7 +158,7 @@ class BybitClient:
                               endTime=window_end, limit=100)
                 if cursor:
                     params["cursor"] = cursor
-                response = self.session.get_closed_pnl(**params)
+                response = self._request("get_closed_pnl", **params)
                 if response.get("retCode") != 0:
                     raise RuntimeError(f"Closed PnL query failed: {response.get('retMsg')}")
                 page = response["result"]["list"]

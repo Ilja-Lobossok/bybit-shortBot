@@ -18,6 +18,10 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, List, Tuple
 
 from dotenv import load_dotenv
+from monitoring.runtime import capture_environment, notify, start_monitoring
+
+# Capture only real process env before the existing dotenv loader runs.
+_MONITORING_ENV = capture_environment()
 
 # Загружаем .env
 load_dotenv()
@@ -61,12 +65,14 @@ class ShortBot:
     def __init__(self):
         self.config = BotConfig()
         self.running = True
+        self.monitoring = start_monitoring(_MONITORING_ENV, self.config.data_dir)
 
         self.client = BybitClient(
             api_key=os.getenv("BYBIT_API_KEY"),
             api_secret=os.getenv("BYBIT_API_SECRET"),
             testnet=os.getenv("BYBIT_TESTNET", "false").lower() == "true"
         )
+        self.client.monitoring = self.monitoring
 
         self.tracker = PositionTracker(os.path.join(self.config.data_dir, "state.json"))
         self.account_balance = None
@@ -89,6 +95,9 @@ class ShortBot:
         logger.info(f"Параметры: pump={self.config.pump_threshold*100}%, tp={self.config.tp_percent*100}%, stall={self.config.stall_bars}")
         logger.info("=" * 60)
 
+    def _observe(self, method, *args, **kwargs):
+        notify(getattr(self, 'monitoring', None), method, *args, **kwargs)
+
     def refresh_balance(self) -> bool:
         """Invalidate stale balances on failure; only exchange amounts allow entries."""
         self.account_balance = None
@@ -102,8 +111,10 @@ class ShortBot:
             self.tracker.risk_state = self.risk_manager.to_state()
             self.tracker.save()
             self.account_balance = balance
+            self._observe("balance_validated")
             return True
         except Exception as e:
+            self._observe("fail_cycle")
             logger.error("Баланс не подтвержден, новые входы запрещены: %s", e)
             return False
 
@@ -127,6 +138,7 @@ class ShortBot:
             response = self.client.get_tickers()
             return response["result"]["list"]
         except Exception as e:
+            self._observe("fail_cycle")
             logger.error(f"Ошибка получения тикеров: {e}")
             return []
 
@@ -140,15 +152,18 @@ class ShortBot:
                     limit=5
                 )
                 if response.get("retCode") == 10006:
+                    self._observe("fail_cycle")
                     wait_time = (attempt + 1) * 2
                     logger.warning(f"Rate limit для {symbol}, ждем {wait_time}с")
                     time.sleep(wait_time)
                     continue
                 if response.get("retCode") != 0:
+                    self._observe("fail_cycle")
                     logger.error(f"Ошибка API для {symbol}: {response.get('retMsg')}")
                     return None
                 return response["result"]["list"]
             except Exception as e:
+                self._observe("fail_cycle")
                 if attempt == max_retries - 1:
                     logger.error(f"Не удалось получить свечи для {symbol}: {e}")
                     return None
@@ -184,6 +199,7 @@ class ShortBot:
                 "near_high": near_high
             }
         except Exception as e:
+            self._observe("fail_cycle")
             logger.error(f"Ошибка проверки {symbol}: {e}")
             return None
 
@@ -200,6 +216,7 @@ class ShortBot:
                 continue
             klines = self.get_klines(symbol)
             if not klines or len(klines) < 2:
+                self._observe("fail_cycle")
                 continue
             last_candle = klines[-2]
             local_high = float(last_candle[2])
@@ -230,6 +247,7 @@ class ShortBot:
                 continue
             klines = self.get_klines(symbol)
             if not klines:
+                self._observe("fail_cycle")
                 continue
             last_candle = klines[-2]
             high = float(last_candle[2])
@@ -257,25 +275,28 @@ class ShortBot:
 
     def cancel_all_orders_for_symbol(self, symbol: str):
         try:
-            response = self.client.session.get_open_orders(
+            response = self.client._request("get_open_orders",
                 category=self.config.category,
                 symbol=symbol
             )
             if response.get("retCode") != 0:
+                self._observe("fail_cycle")
                 return
             orders = response["result"]["list"]
             if not orders:
                 return
             for order in orders:
                 try:
-                    self.client.session.cancel_order(
+                    self.client._request("cancel_order",
                         category=self.config.category,
                         symbol=symbol,
                         orderId=order["orderId"]
                     )
                 except:
+                    self._observe("fail_cycle")
                     pass
         except:
+            self._observe("fail_cycle")
             pass
 
     def reload_from_file(self):
@@ -325,6 +346,7 @@ class ShortBot:
                     current_price = float(t["lastPrice"])
                     break
             if not current_price:
+                self._observe("fail_cycle")
                 logger.error(f"❌ Не удалось получить цену для {symbol}")
                 return
             
@@ -380,6 +402,7 @@ class ShortBot:
                 slOrderType="Market"
             )
             if response.get("retCode") != 0:
+                self._observe("fail_cycle")
                 logger.error(f"❌ Ошибка открытия: {response.get('retMsg')}")
                 return
             
@@ -408,6 +431,7 @@ class ShortBot:
             active_short = next((row for row in position_info if row.get('side') == 'Sell'
                                  and float(row['size']) > 0), None)
             if active_short is None:
+                self._observe("fail_cycle")
                 logger.warning("Ожидаем подтверждения исполнения %s", symbol)
                 return
             actual_entry = float(active_short['avgPrice'])
@@ -435,6 +459,7 @@ class ShortBot:
             logger.info(f"   Фактическая сумма входа: ${actual_qty * actual_entry:.2f}")
             
         except Exception as e:
+            self._observe("fail_cycle")
             logger.error(f"❌ Ошибка открытия позиции {symbol}: {e}", exc_info=True)
 
     def check_positions(self):
@@ -445,6 +470,7 @@ class ShortBot:
                 if position.get('entry_pending'):
                     fill = self.client.get_entry_fill(symbol, position['entry_order_id'])
                     if fill is None:
+                        self._observe("fail_cycle")
                         continue
                     actual_qty, actual_entry = fill
                     if actual_qty == 0:
@@ -465,9 +491,11 @@ class ShortBot:
                 records = self.client.get_closed_pnl(symbol, start_ms, end_ms)
                 trade = ClosedTrade.from_records(symbol, position, records, start_ms, end_ms)
                 if trade is None:
+                    self._observe("fail_cycle")
                     logger.warning("Ожидаем полную историю закрытия %s; запись сохранена", symbol)
                     continue
                 if self.risk_manager is None:
+                    self._observe("fail_cycle")
                     logger.warning("Учет закрытия %s отложен до подтверждения баланса", symbol)
                     continue
                 # Persist accounting and removal in one atomic state replacement.
@@ -486,6 +514,7 @@ class ShortBot:
                 logger.info("Закрытие подтверждено Bybit: %s exit=%.8f net_pnl=%+.4f USDT",
                             symbol, trade.exit, trade.pnl)
             except Exception as e:
+                self._observe("fail_cycle")
                 logger.error("Проверка %s не завершена; позиция сохранена: %s", symbol, e)
 
 
@@ -498,6 +527,7 @@ class ShortBot:
         
         while self.running:
             try:
+                self._observe("progress")
                 current_bar = self.get_current_bar_close()
                 
                 # Суточная статистика в 00:05
@@ -509,11 +539,15 @@ class ShortBot:
                 if current_bar != self.last_bar_close:
                     self.last_bar_close = current_bar
                     logger.info(f"Новая свеча: {datetime.fromtimestamp(current_bar)}")
+                    self._observe("begin_cycle")
                     
                     # Reconcile closures before evaluating today's entry limits.
-                    self.refresh_balance()
+                    balance_before_ok = self.refresh_balance()
+                    self._observe("stage_completed", "balance_before", balance_before_ok)
                     self.check_positions()
+                    self._observe("stage_completed", "positions")
                     tickers = self.get_all_tickers()
+                    self._observe("stage_completed", "tickers", bool(tickers))
                     candidates = []
                     for t in tickers:
                         cand = self.check_pump_candidate(t)
@@ -522,28 +556,36 @@ class ShortBot:
                     if candidates:
                         logger.info(f"Найдено кандидатов: {len(candidates)}")
                         self.update_watchlist(candidates)
+                    self._observe("stage_completed", "watchlist")
 
                     ready = self.check_stall()
+                    self._observe("stage_completed", "stall")
                     if ready:
                         logger.info(f"Готовы к входу: {len(ready)}")
                         for symbol, data in ready:
                             self.open_position(symbol, data)
+                    self._observe("stage_completed", "entries")
 
-                    self.refresh_balance()
+                    balance_after_ok = self.refresh_balance()
+                    self._observe("stage_completed", "balance_after", balance_after_ok)
 
                     logger.info(f"Статистика: watchlist={len(self.tracker.watchlist)}, "
                             f"positions={len(self.tracker.positions)}, "
                             f"{self.balance_summary()}")
+                    self._observe("finish_cycle")
 
                 time.sleep(self.config.wake_seconds)
 
             except KeyboardInterrupt:
+                self._observe("fail_cycle")
                 break
             except Exception as e:
+                self._observe("fail_cycle")
                 logger.error(f"Ошибка в основном цикле: {e}", exc_info=True)
                 time.sleep(10)
 
         logger.info("Бот остановлен")
+        self._observe("stop")
     
     def send_daily_stats(self):
         """Отправить суточную статистику"""
