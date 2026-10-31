@@ -19,9 +19,12 @@ from typing import Dict, Any, Optional, List, Tuple
 
 from dotenv import load_dotenv
 from monitoring.runtime import capture_environment, notify, start_monitoring
+from performance.observations import capture_environment as capture_performance_environment, notify as performance_notify
+from performance.runtime import start_performance
 
 # Capture only real process env before the existing dotenv loader runs.
 _MONITORING_ENV = capture_environment()
+_PERFORMANCE_ENV = capture_performance_environment()
 
 # Загружаем .env
 load_dotenv()
@@ -75,6 +78,9 @@ class ShortBot:
         self.client.monitoring = self.monitoring
 
         self.tracker = PositionTracker(os.path.join(self.config.data_dir, "state.json"))
+        self.performance = start_performance(_PERFORMANCE_ENV, self.config.data_dir)
+        self.client.performance = self.performance
+        self._performance_bootstrap()
         self.account_balance = None
         self.risk_manager = None
         self.refresh_balance()
@@ -97,6 +103,32 @@ class ShortBot:
 
     def _observe(self, method, *args, **kwargs):
         notify(getattr(self, 'monitoring', None), method, *args, **kwargs)
+
+    def _performance(self, kind, **body):
+        performance_notify(getattr(self, 'performance', None), kind, **body)
+
+    def _performance_bootstrap(self):
+        try:
+            if not getattr(getattr(self, 'performance', None), 'enabled', False):
+                return
+            self._performance("bootstrap", entries=[
+                {"symbol": symbol, "order_id": row["entry_order_id"]}
+                for symbol, row in self.tracker.positions.items() if row.get("entry_order_id")])
+        except Exception:
+            pass
+
+    def _performance_strategy(self, candidates, ready, scheduled_bar):
+        try:
+            if not getattr(getattr(self, 'performance', None), 'enabled', False):
+                return
+            rows = {row["symbol"]: dict(row, candidate=True) for row in candidates}
+            for symbol, value in self.tracker.watchlist.items():
+                rows.setdefault(symbol, {"symbol": symbol}).update(value, watching=True)
+            for symbol, _value in ready:
+                rows.setdefault(symbol, {"symbol": symbol})["ready"] = True
+            self._performance("strategy_snapshot", rows=list(rows.values()), scheduled_bar=scheduled_bar)
+        except Exception:
+            pass
 
     def refresh_balance(self) -> bool:
         """Invalidate stale balances on failure; only exchange amounts allow entries."""
@@ -173,6 +205,7 @@ class ShortBot:
     def check_pump_candidate(self, ticker: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         symbol = ticker.get("symbol", "")
         if not symbol.endswith("USDT"):
+            self._performance("decision", symbol=symbol, reason="not_usdt")
             return None
         try:
             last = float(ticker.get("lastPrice", 0))
@@ -180,15 +213,20 @@ class ShortBot:
             low24 = float(ticker.get("lowPrice24h", 0))
             turnover = float(ticker.get("turnover24h", 0))
             if last <= 0 or high24 <= 0 or low24 <= 0:
+                self._performance("decision", symbol=symbol, reason="invalid_market")
                 return None
             pump_pct = (last - low24) / low24
             near_high = last / high24
             if turnover < self.config.min_turnover_usdt:
+                self._performance("decision", symbol=symbol, reason="turnover")
                 return None
             if pump_pct < self.config.pump_threshold:
+                self._performance("decision", symbol=symbol, reason="pump")
                 return None
             if near_high < self.config.near_high_ratio:
+                self._performance("decision", symbol=symbol, reason="near_high")
                 return None
+            self._performance("decision", symbol=symbol, reason="candidate", pump_pct=pump_pct * 100)
             return {
                 "symbol": symbol,
                 "last": last,
@@ -209,13 +247,17 @@ class ShortBot:
         for cand in candidates:
             symbol = cand["symbol"]
             if self.tracker.in_cooldown(symbol, self.config.cooldown_minutes):
+                self._performance("decision", symbol=symbol, reason="cooldown")
                 continue
             if symbol in self.tracker.positions:
+                self._performance("decision", symbol=symbol, reason="tracked")
                 continue
             if symbol in self.tracker.watchlist:
+                self._performance("decision", symbol=symbol, reason="watching")
                 continue
             klines = self.get_klines(symbol)
             if not klines or len(klines) < 2:
+                self._performance("decision", symbol=symbol, reason="missing_klines")
                 self._observe("fail_cycle")
                 continue
             last_candle = klines[-2]
@@ -242,11 +284,13 @@ class ShortBot:
         now = int(time.time())
         for symbol, data in list(self.tracker.watchlist.items()):
             if now - data.get("created_ts", now) > self.config.watch_ttl_hours * 3600:
+                self._performance("decision", symbol=symbol, reason="ttl")
                 logger.info(f"Удален из watchlist (TTL): {symbol}")
                 del self.tracker.watchlist[symbol]
                 continue
             klines = self.get_klines(symbol)
             if not klines:
+                self._performance("decision", symbol=symbol, reason="missing_klines")
                 self._observe("fail_cycle")
                 continue
             last_candle = klines[-2]
@@ -259,17 +303,21 @@ class ShortBot:
                 data["local_high"] = high
                 data["stall"] = 0
                 data["blocked"] = False
+                self._performance("decision", symbol=symbol, reason="new_high", candle_ms=last_candle[0], local_high=high)
                 logger.info(f"Новый локальный максимум для {symbol}: {high:.6f}")
             else:
                 data["stall"] = stall + 1
+                self._performance("decision", symbol=symbol, reason="stall", stall=data["stall"], candle_ms=last_candle[0])
             data["updated_ts"] = now
             if data["stall"] >= self.config.stall_bars and not blocked:
                 tp_price = local_high * (1 - self.config.tp_percent)
                 if close <= tp_price:
+                    self._performance("decision", symbol=symbol, reason="below_tp", candle_ms=last_candle[0])
                     data["blocked"] = True
                     logger.info(f"⏭ {symbol}: цена уже ниже TP ({close:.6f} <= {tp_price:.6f}), блокируем")
                 else:
                     ready.append((symbol, data))
+                    self._performance("decision", symbol=symbol, reason="ready", stall=data["stall"], candle_ms=last_candle[0])
         self.tracker.save()
         return ready
 
@@ -301,6 +349,7 @@ class ShortBot:
 
     def reload_from_file(self):
         self.tracker.load()
+        self._performance_bootstrap()
         self.risk_manager = None
         self.refresh_balance()
         logger.info(f"Перезагружено из файла: {len(self.tracker.positions)} positions, {len(self.tracker.watchlist)} watchlist")
@@ -309,23 +358,28 @@ class ShortBot:
         try:
             # общие предохранители
             if symbol in self.tracker.positions:
+                self._performance("decision", symbol=symbol, reason="tracked")
                 logger.warning(f"⛔ Уже есть позиция по {symbol}, пропускаем")
                 return
 
             if len(self.tracker.positions) >= self.config.max_concurrent_trades + 100:
+                self._performance("decision", symbol=symbol, reason="position_limit")
                 logger.warning("⛔ Достигнуто максимальное количество открытых позиций, пропускаем")
                 return
 
             if not self.refresh_balance():
+                self._performance("decision", symbol=symbol, reason="balance")
                 return
             ok, reason = self.risk_manager.can_trade_today(datetime.now(timezone.utc).date())
             if not ok:
+                self._performance("decision", symbol=symbol, reason="risk", risk_detail=reason)
                 logger.warning(f"⛔ Пропуск открытия: {reason}")
                 return
 
             # Проверка на бирже (чтобы избежать дубликатов)
             existing_positions = self.client.get_positions(symbol=symbol)
             if any(float(row['size']) > 0 for row in existing_positions):
+                self._performance("decision", symbol=symbol, reason="exchange_position")
                 logger.warning(f"⛔ На бирже уже есть позиция по {symbol}, пропускаем")
                 return
 
@@ -335,6 +389,7 @@ class ShortBot:
             multiplier = self.risk_manager.get_position_multiplier(symbol)
             position_usdt *= multiplier
             if available < position_usdt * 1.1:
+                self._performance("decision", symbol=symbol, reason="funds")
                 logger.error(f"❌ Недостаточно баланса: {available:.2f} < {position_usdt:.2f}")
                 return
             
@@ -346,6 +401,7 @@ class ShortBot:
                     current_price = float(t["lastPrice"])
                     break
             if not current_price:
+                self._performance("decision", symbol=symbol, reason="missing_price")
                 self._observe("fail_cycle")
                 logger.error(f"❌ Не удалось получить цену для {symbol}")
                 return
@@ -365,6 +421,7 @@ class ShortBot:
                 qty = math.ceil(filters["min_notional"] / current_price / qty_step) * qty_step
                 logger.info(f"📊 Увеличили количество до {qty} для мин. суммы")
             if qty * current_price * 1.1 > available:
+                self._performance("decision", symbol=symbol, reason="min_order")
                 logger.warning("Минимальный ордер %s превышает доступный баланс", symbol)
                 return
             
@@ -425,12 +482,15 @@ class ShortBot:
                 "local_high": local_high
             }
             self.tracker.add_position(position)
+            self._performance("entry", symbol=symbol, order_id=position["entry_order_id"], flat_before=True)
+            self._performance("decision", symbol=symbol, reason="accepted")
 
             time.sleep(1)
             position_info = self.client.get_positions(symbol=symbol)
             active_short = next((row for row in position_info if row.get('side') == 'Sell'
                                  and float(row['size']) > 0), None)
             if active_short is None:
+                self._performance("decision", symbol=symbol, reason="pending")
                 self._observe("fail_cycle")
                 logger.warning("Ожидаем подтверждения исполнения %s", symbol)
                 return
@@ -565,6 +625,7 @@ class ShortBot:
                         for symbol, data in ready:
                             self.open_position(symbol, data)
                     self._observe("stage_completed", "entries")
+                    self._performance_strategy(candidates, ready, current_bar)
 
                     balance_after_ok = self.refresh_balance()
                     self._observe("stage_completed", "balance_after", balance_after_ok)
@@ -586,6 +647,12 @@ class ShortBot:
 
         logger.info("Бот остановлен")
         self._observe("stop")
+        try:
+            observer = getattr(self, 'performance', None)
+            if observer is not None and observer.enabled:
+                observer.stop()
+        except Exception:
+            pass
     
     def send_daily_stats(self):
         """Отправить суточную статистику"""

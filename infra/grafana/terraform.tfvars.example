@@ -1,0 +1,11 @@
+# Non-secret configuration only. Copy to terraform.tfvars (gitignored).
+grafana_url              = "https://tanwolf1218.grafana.net"
+metrics_datasource_uid   = "grafanacloud-prom"
+environment              = "production"
+alerts_enabled           = false
+alert_contact_point_name = ""
+# GRAFANA_AUTH is an operator-only environment variable; never paste it here.
+
+# Stage 4: metrics-only dashboard, enabled by default; no Loki or new secrets.
+performance_dashboard_enabled = true
+performance_account_alias     = "primary"

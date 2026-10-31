@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "evaluation_interval_seconds": 60,
+  "condition_threshold": 0.5,
+  "rules": [
+    {
+      "id": "heartbeat",
+      "name": "Bot heartbeat stalled or missing",
+      "severity": "critical",
+      "panel_id": 1,
+      "expr": "(time() - max(bot_main_progress_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}) > bool 180) or on() absent(max(bot_main_progress_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))",
+      "pending": "2m",
+      "no_data": "Alerting",
+      "summary": "Bot progress is stale or telemetry is unavailable.",
+      "description": "Progress age >180s or no current marker, pending 2m. Inspect Render and Cloud; do not restart or send orders automatically."
+    },
+    {
+      "id": "cycle",
+      "name": "No successful trading candle",
+      "severity": "warning",
+      "panel_id": 3,
+      "expr": "(time() - max(bot_cycle_success_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}) > bool 1200) or on() ((time() - max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}) > bool 1500) * on() absent(max((bot_cycle_success_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"})))))) or on() vector(0)",
+      "pending": "5m",
+      "no_data": "OK",
+      "summary": "No recent fully successful candle.",
+      "description": "Success age >20m; if never successful, allow 25m after process start, then 5m pending. Waiting is not candle success."
+    },
+    {
+      "id": "bybit-errors",
+      "name": "Bybit API errors observed",
+      "severity": "warning",
+      "panel_id": 12,
+      "expr": "(sum(increase(bot_api_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m])) > bool 0) or on() vector(0)",
+      "pending": "2m",
+      "no_data": "OK",
+      "summary": "Existing Bybit SDK calls returned errors.",
+      "description": "New errors within 15m; inspect operation/category. Do not retry an order manually."
+    },
+    {
+      "id": "bybit-critical",
+      "name": "Bybit API critical error rate",
+      "severity": "critical",
+      "panel_id": 12,
+      "expr": "((sum(increase(bot_api_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m])) >= bool 5) * on() (sum(increase(bot_api_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m])) / sum(increase(bot_api_requests_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m])) >= bool 0.25)) or on() vector(0)",
+      "pending": "2m",
+      "no_data": "OK",
+      "summary": "At least five API errors and >=25% errors over 15m.",
+      "description": "Read-call retries are counted as existing SDK invocations. No traffic alone is not an API failure."
+    },
+    {
+      "id": "disk",
+      "name": "Persistent disk critically low",
+      "severity": "critical",
+      "panel_id": 17,
+      "expr": "max((bot_disk_available_bytes{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"})))) < bool 104857600",
+      "pending": "5m",
+      "no_data": "NoData",
+      "summary": "Less than 100 MiB free on DATA_DIR filesystem.",
+      "description": "Inspect disk usage read-only. Never delete state.json, backups or logs automatically."
+    },
+    {
+      "id": "export",
+      "name": "Telemetry exports failing",
+      "severity": "warning",
+      "panel_id": 18,
+      "expr": "(sum(increase(bot_monitoring_export_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m])) >= bool 3) or on() vector(0)",
+      "pending": "2m",
+      "no_data": "OK",
+      "summary": "At least three failed telemetry exports over 15m.",
+      "description": "Errors may arrive only after delivery recovers. Missing delivery is covered by the heartbeat rule."
+    },
+    {
+      "id": "dropped",
+      "name": "Telemetry events dropped",
+      "severity": "warning",
+      "panel_id": 18,
+      "expr": "(sum(increase(bot_monitoring_dropped_events_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m])) > bool 0) or on() vector(0)",
+      "pending": "2m",
+      "no_data": "OK",
+      "summary": "Bounded telemetry mailbox dropped observations.",
+      "description": "Technical counters/latency may undercount. Trading remains fail-open; inspect CPU/RAM and Cloud delivery."
+    },
+    {
+      "id": "restarts",
+      "name": "Repeated observed process starts",
+      "severity": "warning",
+      "panel_id": 6,
+      "expr": "(changes((max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))[30m:1m]) > bool 2) or on() vector(0)",
+      "pending": "0s",
+      "no_data": "OK",
+      "summary": "More than two observed start-time changes in 30m.",
+      "description": "Lower-bound estimate sampled every minute, not a Render restart counter. Do not restart again to test this alert."
+    }
+  ]
+}
