@@ -1,0 +1,1542 @@
+{
+  "uid": "bybit-bot-health",
+  "title": "Bybit ShortBot · Bot Health",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "timezone": "browser",
+  "refresh": "1m",
+  "tags": [
+    "bybit-shortbot",
+    "monitoring-stage3",
+    "managed-by-terraform"
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "links": [],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "type": "constant",
+        "query": "__ENVIRONMENT__",
+        "hide": 0,
+        "current": {
+          "text": "__ENVIRONMENT__",
+          "value": "__ENVIRONMENT__"
+        }
+      },
+      {
+        "name": "operation",
+        "label": "API operation (charts)",
+        "type": "custom",
+        "query": "get_instruments_info,get_tickers,get_kline,get_wallet_balance,place_order,get_positions,get_order_history,get_closed_pnl,get_open_orders,cancel_order,other",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ],
+          "selected": true
+        },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Bot progress",
+      "description": "Main-thread progress only. Green does not assert a successful candle or profitable trading.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-1": {
+                  "text": "NO DATA",
+                  "color": "gray"
+                },
+                "0": {
+                  "text": "STALE",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "PROGRESSING",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "(time() - max(bot_main_progress_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}) <= bool 180) or on() vector(-1)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Main progress age",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 180
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(bot_main_progress_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"})",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Successful candle age",
+      "description": "15-minute work schedule. Waiting every 5s is not success; absent before first complete clean candle.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1200
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(bot_cycle_success_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"})",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Last successful candle",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "max(bot_cycle_success_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}) * 1000",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Process uptime",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"})",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Observed restarts / selected range",
+      "description": "Lower-bound estimate of changes in the newest process start timestamp. Processes missed between 60s exports/subquery steps cannot be counted; not an exact Render counter.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "changes((max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))[$__range:1m])",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Validated balance age",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1200
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(bot_balance_success_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"})",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Last validated balance",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "max(bot_balance_success_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}) * 1000",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Process start",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}) * 1000",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Heartbeat sample age",
+      "description": "Age of the ingested sample, distinct from the timestamp value measuring main-thread progress.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 180
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(timestamp(bot_main_progress_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Bybit SDK requests / s (15m window)",
+      "description": "Existing SDK invocations, not physical HTTP retries. Quiet intervals between candles are normal.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum by (operation, result) (rate(bot_api_requests_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\",operation=~\"${operation:regex}\"}[15m]))",
+          "refId": "A",
+          "legendFormat": "{{operation}} / {{result}}",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Bybit errors (15m increase)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum by (operation, category) (increase(bot_api_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\",operation=~\"${operation:regex}\"}[15m]))",
+          "refId": "A",
+          "legendFormat": "{{operation}} / {{category}}",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Bybit p95 latency (15m)",
+      "description": "No observations means No data, not zero latency; sparse-request quantiles are approximate.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(bot_api_duration_seconds_bucket{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\",operation=~\"${operation:regex}\"}[15m])))",
+          "refId": "A",
+          "legendFormat": "{{operation}}",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Bybit mean latency (15m)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum by (operation) (rate(bot_api_duration_seconds_sum{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\",operation=~\"${operation:regex}\"}[15m])) / sum by (operation) (rate(bot_api_duration_seconds_count{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\",operation=~\"${operation:regex}\"}[15m]))",
+          "refId": "A",
+          "legendFormat": "{{operation}}",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Process CPU / one core",
+      "description": "100% = one fully used CPU core. This is not a percentage of a confirmed Render container CPU limit.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(bot_process_cpu_seconds_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[5m]))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Process RSS",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "max((bot_process_resident_memory_bytes{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "DATA_DIR filesystem available",
+      "description": "Free bytes in the filesystem containing persistent DATA_DIR. No total/percentage is invented.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 104857600
+              },
+              {
+                "color": "green",
+                "value": 209715200
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "max((bot_disk_available_bytes{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Telemetry failures / drops (15m increase)",
+      "description": "Export errors can be received only after delivery recovers; use heartbeat loss for total outages.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum(increase(bot_monitoring_export_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m]))",
+          "refId": "A",
+          "legendFormat": "Export failures",
+          "instant": false,
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum(increase(bot_monitoring_dropped_events_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}[15m]))",
+          "refId": "B",
+          "legendFormat": "Dropped events",
+          "instant": false,
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "stat",
+      "title": "Export errors / current process",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum((bot_monitoring_export_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "SDK calls / current process",
+      "description": "Cumulative counter, including the first exported batch. API operation filter applies to charts, not these whole-process totals.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 42,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum((bot_api_requests_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "stat",
+      "title": "API errors / current process",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 42,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "sum((bot_api_errors_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "stat",
+      "title": "CPU time / current process",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 42,
+        "w": 6,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "editorMode": "code",
+          "expr": "max((bot_process_cpu_seconds_total{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} and on(job, instance) (bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"} == on() group_left() max(bot_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"trading-bot\",environment=\"__ENVIRONMENT__\"}))))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "text",
+      "title": "How to read this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 47,
+        "w": 24,
+        "h": 5
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Metrics export about every **60s**; candle processing is about every **15m**. **No data** is not healthy/zero. Quiet API intervals and missing latency before observations are normal. Restart count is an observed estimate. This dashboard shows technical health, not equity or P&L. Alerts never restart the worker or place orders."
+      }
+    }
+  ]
+}

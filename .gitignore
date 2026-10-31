@@ -15,9 +15,27 @@ pip-delete-this-directory.txt
 # Data
 data/
 *.db
+*.sqlite3
+*.sqlite3-*
+*.sqlite
+*.sqlite-*
 *.log
 *.json
 !data/.gitkeep
+!infra/grafana/dashboards/*.json
+!infra/grafana/alerts/*.json
+
+# Local Terraform state, credentials, plans and generated test data
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+crash.log
+crash.*.log
+infra/grafana/.test-output/
 
 # API Keys
 .env

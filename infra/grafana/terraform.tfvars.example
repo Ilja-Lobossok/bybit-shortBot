@@ -1,0 +1,12 @@
+# Non-secret configuration only. Copy to terraform.tfvars (gitignored).
+grafana_url              = "https://tanwolf1218.grafana.net"
+metrics_datasource_uid   = "grafanacloud-prom"
+environment              = "production"
+alerts_enabled           = false
+alert_contact_point_name = ""
+# GRAFANA_AUTH is an operator-only environment variable; never paste it here.
+
+# Stage 4: explicitly opt in only after synthetic Cloud presentation acceptance.
+performance_dashboard_enabled = false
+logs_datasource_uid           = "" # existing Loki UID, not its display name
+performance_account_alias     = "primary"

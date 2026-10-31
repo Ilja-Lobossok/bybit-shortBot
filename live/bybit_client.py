@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional, List
 from pybit.unified_trading import HTTP
 from tenacity import retry, stop_after_attempt, wait_exponential
 from monitoring.runtime import observe_api_call
+from performance.observations import observe_order_call
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,9 @@ class BybitClient:
 
     def _request(self, operation, *args, **kwargs):
         """Observe one existing SDK invocation without adding a retry or request."""
-        return observe_api_call(getattr(self, 'monitoring', None), operation,
-                                getattr(self.session, operation), *args, **kwargs)
+        return observe_order_call(getattr(self, 'performance', None), operation, kwargs.get("symbol", ""),
+                                  observe_api_call, getattr(self, 'monitoring', None), operation,
+                                  getattr(self.session, operation), *args, **kwargs)
     
     @retry(
         stop=stop_after_attempt(3),

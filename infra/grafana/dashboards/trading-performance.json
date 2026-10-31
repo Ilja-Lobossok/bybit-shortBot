@@ -1,0 +1,2621 @@
+{
+  "uid": "bybit-trading-performance",
+  "title": "Bybit ShortBot — Trading Performance",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "1m",
+  "timezone": "browser",
+  "tags": [
+    "bybit",
+    "performance",
+    "as-code"
+  ],
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "History endpoint coverage (not a completeness guarantee)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "description": "0 coverage / stale data / pending records means incomplete. Financial KPI use reconciled closed cycles only.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_history_complete{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 1,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Pending / incomplete records",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "description": "0 coverage / stale data / pending records means incomplete. Financial KPI use reconciled closed cycles only.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_pending_records{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Unattributed records (excluded from bot KPI)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "description": "0 coverage / stale data / pending records means incomplete. Financial KPI use reconciled closed cycles only.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_unattributed_records{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Balance age",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "description": "0 coverage / stale data / pending records means incomplete. Financial KPI use reconciled closed cycles only.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - max((bot_performance_balance_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Account wallet (raw USDT)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Bybit snapshot, not bot-allocated capital; coin USDT and account USD are separate. No backfilled historical equity.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_wallet_balance{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Account equity (USDT coin)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Bybit snapshot, not bot-allocated capital; coin USDT and account USD are separate. No backfilled historical equity.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_equity{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Account unrealized P&L (Mark, USDT)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Bybit snapshot, not bot-allocated capital; coin USDT and account USD are separate. No backfilled historical equity.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_unrealized_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Account total equity (USD)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 5,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Bybit snapshot, not bot-allocated capital; coin USDT and account USD are separate. No backfilled historical equity.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_account_total_equity_usd{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USD\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Net closed P&L: verified cycles / selected scope",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Fixed KPI window selected above, not arbitrary time picker. Unknown cycles excluded; missing history is not zero. Net already includes fees/funding.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_net_closed_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Win rate: verified cycles",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 10,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Fixed KPI window selected above, not arbitrary time picker. Unknown cycles excluded; missing history is not zero. Net already includes fees/funding.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_win_rate{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Profit factor (No data if no losses)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Fixed KPI window selected above, not arbitrary time picker. Unknown cycles excluded; missing history is not zero. Net already includes fees/funding.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_profit_factor{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Fully reconciled cycles (N)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 10,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Fixed KPI window selected above, not arbitrary time picker. Unknown cycles excluded; missing history is not zero. Net already includes fees/funding.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_cycles{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Equity history since observations began",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 12,
+        "h": 8
+      },
+      "description": "OTLP 60s samples. No invented equity before collection; corrections can revise closed P&L. Time picker controls displayed observations, not trade closure filtering.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_equity{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "Cumulative closed P&L of verified cycles",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 15,
+        "w": 12,
+        "h": 8
+      },
+      "description": "OTLP 60s samples. No invented equity before collection; corrections can revise closed P&L. Time picker controls displayed observations, not trade closure filtering.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_net_closed_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"all\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Mean win",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_average_win{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "Mean loss",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 23,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_average_loss{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "title": "Maximum observed equity drawdown (includes cash flows)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 23,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_max_drawdown_ratio{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "title": "Account realized cash change (covered linear USDT)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 23,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_realized_cash_change{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "title": "Account trading fees (expense positive)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_fees{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "Account funding (received positive)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 28,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_funding{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "Cash-flow-adjusted USDT equity change (only if reconciled)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_cash_adjusted_profit{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "No losses in verified sample (1 = PF undefined)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 28,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Separate components, never subtract again from net closed P&L. DD is a lower bound from observed snapshots, not strategy TWR.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_profit_factor_no_losses{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "title": "Actual open positions (5m view, Mark, exchange TP/SL; check as-of)",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "__LOGS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 18,
+        "h": 9
+      },
+      "description": "Only acknowledged generation ${projection}. Empty table is NOT proof of no positions unless row-count panel is complete and fresh. Account scope table; attribution column identifies bot. Ingestion is publication time; business times are columns. Fixed latest-view, not historical SQL.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"bybit-performance\"} | environment=\"__ENVIRONMENT__\" | account_alias=\"${account}\" | json | __error__=\"\" | generation=${projection} | kind=\"position\"",
+          "datasource": {
+            "type": "loki",
+            "uid": "__LOGS_DATASOURCE_UID__"
+          },
+          "queryType": "range",
+          "direction": "backward",
+          "maxLines": 5000
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "timeFrom": "15m",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "entity_key": {
+                "operation": "groupby"
+              },
+              "symbol": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "positionIdx": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "side": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "size": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "avgPrice": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "markPrice": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "unrealisedPnl": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "takeProfit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "stopLoss": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "opened_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "closed_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "entry": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "exit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "qty": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "net_pnl": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "fees": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "funding": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "unit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "money_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "attribution_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "reason": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "risk_reason": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "pump_pct": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "stall": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "local_high": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "ready": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "blocked": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "watching": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "decision_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "candle_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "scheduled_bar": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "as_of_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "published_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "title": "position projection integrity (1 complete / 0 incomplete)",
+      "type": "stat",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 33,
+        "w": 6,
+        "h": 9
+      },
+      "description": "Must be 1 before trusting an empty table. Exact unique row count, non-truncated projection, ack <15m. Query errors/NoData are incomplete. Loki default maxLines 5000; rare repeated retries can truncate table: inspect manifest/limit and verify in acceptance PoC.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(sum by (entity_key) (count_over_time({service_name=\"bybit-performance\"} | environment=\"__ENVIRONMENT__\" | account_alias=\"${account}\" | json | __error__=\"\" | generation=${projection} | kind=\"position\"[15m]))) or vector(0)",
+          "datasource": {
+            "type": "loki",
+            "uid": "__LOGS_DATASOURCE_UID__"
+          },
+          "queryType": "instant",
+          "hide": true
+        },
+        {
+          "refId": "B",
+          "expr": "max((bot_performance_projection_expected_rows{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",kind=\"position\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "hide": true
+        },
+        {
+          "refId": "C",
+          "expr": "(max((bot_performance_projection_truncated{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",kind=\"position\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) == bool 0) * on() ((time() - max((bot_performance_projection_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < bool 900) * on() ((time() - max((bot_performance_positions_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < bool 180) * on() (max((bot_performance_storage_degraded{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) == bool 0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "hide": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "math",
+          "expression": "($A == $B) && ($C == 1)",
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 1,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "title": "Latest 1000 cycle / closing-order records; check unit/status",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "__LOGS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 18,
+        "h": 9
+      },
+      "description": "Only acknowledged generation ${projection}. Empty table is NOT proof of no positions unless row-count panel is complete and fresh. Account scope table; attribution column identifies bot. Ingestion is publication time; business times are columns. Fixed latest-view, not historical SQL.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"bybit-performance\"} | environment=\"__ENVIRONMENT__\" | account_alias=\"${account}\" | json | __error__=\"\" | generation=${projection} | kind=\"trade\"",
+          "datasource": {
+            "type": "loki",
+            "uid": "__LOGS_DATASOURCE_UID__"
+          },
+          "queryType": "range",
+          "direction": "backward",
+          "maxLines": 5000
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "timeFrom": "15m",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "entity_key": {
+                "operation": "groupby"
+              },
+              "symbol": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "positionIdx": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "side": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "size": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "avgPrice": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "markPrice": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "unrealisedPnl": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "takeProfit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "stopLoss": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "opened_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "closed_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "entry": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "exit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "qty": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "net_pnl": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "fees": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "funding": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "unit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "money_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "attribution_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "reason": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "risk_reason": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "pump_pct": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "stall": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "local_high": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "ready": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "blocked": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "watching": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "decision_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "candle_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "scheduled_bar": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "as_of_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "published_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "title": "trade projection integrity (1 complete / 0 incomplete)",
+      "type": "stat",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 42,
+        "w": 6,
+        "h": 9
+      },
+      "description": "Must be 1 before trusting an empty table. Exact unique row count, non-truncated projection, ack <15m. Query errors/NoData are incomplete. Loki default maxLines 5000; rare repeated retries can truncate table: inspect manifest/limit and verify in acceptance PoC.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(sum by (entity_key) (count_over_time({service_name=\"bybit-performance\"} | environment=\"__ENVIRONMENT__\" | account_alias=\"${account}\" | json | __error__=\"\" | generation=${projection} | kind=\"trade\"[15m]))) or vector(0)",
+          "datasource": {
+            "type": "loki",
+            "uid": "__LOGS_DATASOURCE_UID__"
+          },
+          "queryType": "instant",
+          "hide": true
+        },
+        {
+          "refId": "B",
+          "expr": "max((bot_performance_projection_expected_rows{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",kind=\"trade\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "hide": true
+        },
+        {
+          "refId": "C",
+          "expr": "(max((bot_performance_projection_truncated{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",kind=\"trade\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) == bool 0) * on() ((time() - max((bot_performance_projection_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < bool 900) * on() ((time() - max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < bool 900) * on() (max((bot_performance_storage_degraded{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) == bool 0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "hide": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "math",
+          "expression": "($A == $B) && ($C == 1)",
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 1,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "title": "Actual strategy observations; latest decision reason",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "__LOGS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 18,
+        "h": 9
+      },
+      "description": "Only acknowledged generation ${projection}. Empty table is NOT proof of no positions unless row-count panel is complete and fresh. Account scope table; attribution column identifies bot. Ingestion is publication time; business times are columns. Fixed latest-view, not historical SQL.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"bybit-performance\"} | environment=\"__ENVIRONMENT__\" | account_alias=\"${account}\" | json | __error__=\"\" | generation=${projection} | kind=\"strategy\"",
+          "datasource": {
+            "type": "loki",
+            "uid": "__LOGS_DATASOURCE_UID__"
+          },
+          "queryType": "range",
+          "direction": "backward",
+          "maxLines": 5000
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "timeFrom": "15m",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "entity_key": {
+                "operation": "groupby"
+              },
+              "symbol": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "positionIdx": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "side": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "size": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "avgPrice": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "markPrice": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "unrealisedPnl": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "takeProfit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "stopLoss": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "opened_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "closed_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "entry": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "exit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "qty": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "net_pnl": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "fees": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "funding": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "unit": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "money_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "attribution_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "reason": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "risk_reason": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "pump_pct": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "stall": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "local_high": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "ready": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "blocked": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "watching": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "decision_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "candle_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "scheduled_bar": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "as_of_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              },
+              "published_at_ms": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "lastNotNull"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "title": "strategy projection integrity (1 complete / 0 incomplete)",
+      "type": "stat",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 51,
+        "w": 6,
+        "h": 9
+      },
+      "description": "Must be 1 before trusting an empty table. Exact unique row count, non-truncated projection, ack <15m. Query errors/NoData are incomplete. Loki default maxLines 5000; rare repeated retries can truncate table: inspect manifest/limit and verify in acceptance PoC.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(sum by (entity_key) (count_over_time({service_name=\"bybit-performance\"} | environment=\"__ENVIRONMENT__\" | account_alias=\"${account}\" | json | __error__=\"\" | generation=${projection} | kind=\"strategy\"[15m]))) or vector(0)",
+          "datasource": {
+            "type": "loki",
+            "uid": "__LOGS_DATASOURCE_UID__"
+          },
+          "queryType": "instant",
+          "hide": true
+        },
+        {
+          "refId": "B",
+          "expr": "max((bot_performance_projection_expected_rows{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",kind=\"strategy\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "hide": true
+        },
+        {
+          "refId": "C",
+          "expr": "(max((bot_performance_projection_truncated{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",kind=\"strategy\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) == bool 0) * on() ((time() - max((bot_performance_projection_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < bool 900) * on() ((time() - max((bot_performance_strategy_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < bool 1200) * on() (max((bot_performance_storage_degraded{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) == bool 0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "hide": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "math",
+          "expression": "($A == $B) && ($C == 1)",
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 1,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 29,
+      "title": "Filled entry orders / exits / TP / SL / exchange rejections",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 60,
+        "w": 12,
+        "h": 7
+      },
+      "description": "Unique order IDs, includes open cycles. Bot entry IDs require local proof; exits require attributable cycles. Partials are not extra cycles. Rejection history has a short Bybit retention window, not lifetime complete. SDK errors below are ambiguous.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(outcome)((bot_performance_order_counts{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "title": "Actual decision / skip counts (persisted since journal start)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 60,
+        "w": 12,
+        "h": 7
+      },
+      "description": "Includes order_error from existing place_order calls only. A timeout can mean accepted; this observation NEVER retries an order.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(reason)((bot_performance_decision_count{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 31,
+      "title": "Performance storage degraded",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 67,
+        "w": 6,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_storage_degraded{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "title": "Performance errors",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 67,
+        "w": 6,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_errors_total{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 33,
+      "title": "Lost strategy observations",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 67,
+        "w": 6,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_dropped_events_total{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 34,
+      "title": "Journal bytes including WAL",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 67,
+        "w": 6,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_storage_bytes{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 35,
+      "title": "Selected KPI window covered (1 yes; subset still excludes unknown cycles)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 72,
+        "w": 12,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_kpi_window_complete{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 36,
+      "title": "Cash-adjusted result as-of (lagged to reconciled transaction coverage)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 72,
+        "w": 12,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(max((bot_performance_cash_adjusted_as_of_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) * 1000",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "account",
+        "type": "constant",
+        "query": "__ACCOUNT_ALIAS__",
+        "hide": 2
+      },
+      {
+        "name": "scope",
+        "type": "custom",
+        "query": "bot,account",
+        "current": {
+          "text": "bot",
+          "value": "bot"
+        }
+      },
+      {
+        "name": "window",
+        "type": "custom",
+        "query": "all,utc_day,7d,30d",
+        "current": {
+          "text": "all",
+          "value": "all"
+        }
+      },
+      {
+        "name": "projection",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "__METRICS_DATASOURCE_UID__"
+        },
+        "query": {
+          "query": "query_result(scalar(max((bot_performance_projection_generation{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))))",
+          "refId": "generation"
+        },
+        "regex": "/^([0-9]+)(?:\\.0+)?$/",
+        "refresh": 2,
+        "hide": 2,
+        "multi": false,
+        "includeAll": false
+      }
+    ]
+  }
+}
