@@ -20,13 +20,32 @@ class ObservationTests(Offline):
             self.assertIs(start_performance({"PERFORMANCE_ENABLED": "false"}, self.path.parent), DISABLED)
         factory.assert_not_called()
 
-    def test_environment_before_dotenv_and_no_trading_key_fallback(self):
-        env = {"PERFORMANCE_ENABLED": "true", "BYBIT_API_KEY": "SECRET", "UNRELATED": "SECRET"}
+    def test_environment_before_dotenv_reuses_only_existing_credentials(self):
+        env = {"MONITORING_ENABLED": "true", "BYBIT_API_KEY": "SECRET", "BYBIT_API_SECRET": "SECRET", "UNRELATED": "SECRET"}
         captured = capture_environment(env)
         env["PERFORMANCE_ENABLED"] = "false"
         self.assertEqual(captured["PERFORMANCE_ENABLED"], "true")
-        self.assertNotIn("BYBIT_API_KEY", captured)
+        self.assertEqual(captured["BYBIT_API_KEY"], "SECRET")
+        self.assertEqual(captured["BYBIT_API_SECRET"], "SECRET")
+        self.assertNotIn("PERFORMANCE_GRAFANA_LOGS_TOKEN", captured)
         self.assertNotIn("UNRELATED", captured)
+
+    def test_inherits_working_monitoring_without_new_flags_and_explicit_off_wins(self):
+        with patch("performance.runtime.Runtime") as factory:
+            start_performance({"MONITORING_ENABLED": "true"}, self.path.parent)
+            factory.return_value.start.assert_called_once_with()
+            factory.reset_mock()
+            self.assertIs(start_performance({"MONITORING_ENABLED": "true", "PERFORMANCE_ENABLED": "false"}, self.path.parent), DISABLED)
+            factory.assert_not_called()
+
+    def test_strategy_aggregate_counts_are_exact_even_when_detail_is_capped(self):
+        mailbox = Mailbox()
+        mailbox.emit("strategy_snapshot", {"rows": [dict(symbol="S" + str(i) + "USDT", watching=True, candidate=True,
+                                                          ready=i < 2, blocked=i == 2, stall=3) for i in range(501)]})
+        body = mailbox.take()[0]["body"]
+        self.assertEqual(len(body["rows"]), 500)
+        self.assertTrue(body["rows_truncated"])
+        self.assertEqual(body["counts"], {"watching": 501, "candidate": 501, "ready": 2, "blocked": 1, "stalling": 501})
 
     def test_mailbox_copies_actual_inputs_and_is_bounded(self):
         mailbox = Mailbox(capacity=2)
@@ -94,6 +113,12 @@ class ObservationTests(Offline):
             b = next(x for x in new.body if isinstance(x, ast.FunctionDef) and x.name == name)
             self.assertEqual(ast.dump(a), ast.dump(RemoveObservations().visit(b)), name)
 
+        previous = ast.parse(subprocess.check_output(["git", "show", "8f0e0c2:bot.py"], cwd=ROOT).decode("utf-8-sig"))
+        previous_class = next(x for x in previous.body if isinstance(x, ast.ClassDef) and x.name == "ShortBot")
+        old_run = next(x for x in previous_class.body if isinstance(x, ast.FunctionDef) and x.name == "run")
+        new_run = next(x for x in new.body if isinstance(x, ast.FunctionDef) and x.name == "run")
+        self.assertEqual(ast.dump(RemoveObservations().visit(old_run)), ast.dump(RemoveObservations().visit(new_run)))
+
 
 class EnabledTradingTests(accounting.BotAccountingTests):
     def setUp(self):
@@ -118,3 +143,14 @@ class EnabledLoopTests(monitor_bot.LoopTests):
         instance = super().make_bot(**kwargs)
         instance.performance = Mailbox()
         return instance
+
+    def test_watchlist_metrics_observe_actual_post_entry_removal(self):
+        instance = self.make_bot()
+        instance.tracker.watchlist = {"TESTUSDT": {"local_high": 10, "stall": 4}}
+        instance.check_pump_candidate.return_value = {"symbol": "TESTUSDT", "pump_pct": 30}
+        instance.check_stall.return_value = [("TESTUSDT", instance.tracker.watchlist["TESTUSDT"])]
+        instance.open_position.side_effect = lambda *_args: instance.tracker.watchlist.clear()
+        self.run_once(instance)
+        snapshots = [x for x in instance.performance.take() if x["kind"] == "strategy_snapshot"]
+        self.assertEqual(snapshots[0]["body"]["counts"]["watching"], 0)
+        self.assertEqual(snapshots[0]["body"]["counts"]["ready"], 1)

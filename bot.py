@@ -619,13 +619,13 @@ class ShortBot:
                     self._observe("stage_completed", "watchlist")
 
                     ready = self.check_stall()
-                    self._performance_strategy(candidates, ready, current_bar)
                     self._observe("stage_completed", "stall")
                     if ready:
                         logger.info(f"Готовы к входу: {len(ready)}")
                         for symbol, data in ready:
                             self.open_position(symbol, data)
                     self._observe("stage_completed", "entries")
+                    self._performance_strategy(candidates, ready, current_bar)
 
                     balance_after_ok = self.refresh_balance()
                     self._observe("stage_completed", "balance_after", balance_after_ok)

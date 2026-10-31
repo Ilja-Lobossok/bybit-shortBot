@@ -1,6 +1,7 @@
 import json
 from types import SimpleNamespace
 from unittest.mock import Mock
+from unittest.mock import patch
 
 from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import ExportLogsServiceRequest, ExportLogsServiceResponse
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
@@ -145,3 +146,62 @@ class ExportTests(Offline):
         self.assertEqual(logs.send.call_count, 1)
         runtime.tick(self.store, None, logs, 305000)
         self.assertEqual(logs.send.call_count, 2)
+
+    def test_optional_logs_failure_cannot_discard_financial_cache(self):
+        seed(self.store)
+        runtime, logs = Runtime(TEST_ENV, self.path.parent), Mock()
+        logs.send.side_effect = RuntimeError(TEST_TOKEN)
+        runtime.tick(self.store, None, logs, 5000)
+        values = {(name, tuple(sorted(labels.items()))): value for name, value, labels in runtime.cache}
+        self.assertEqual(values["wins", (("currency", "USDT"), ("scope", "bot"), ("window", "all"))], 1)
+        self.assertEqual(runtime.degraded, 0)
+        self.assertGreater(runtime.errors, 0)
+
+    def test_existing_environment_starts_metrics_and_get_collector_without_logs(self):
+        self._run_existing_environment(log_flag=False)
+
+    def test_missing_optional_log_token_does_not_stop_existing_metrics(self):
+        self._run_existing_environment(log_flag=True)
+
+    def _run_existing_environment(self, *, log_flag):
+        from tests.test_performance_reader import ENV
+        seed(self.store)
+        env = dict(TEST_ENV, **ENV, MONITORING_ENABLED="true")
+        if log_flag:
+            env["PERFORMANCE_LOG_EXPORT_ENABLED"] = "true"
+        runtime = Runtime(env, self.path.parent)
+        runtime._stop = Mock()
+        runtime._stop.wait.side_effect = [False, True]
+        reader = Mock(fingerprint="synthetic-account")
+        with patch("performance.bybit_reader.Reader", return_value=reader) as reader_factory, \
+                patch("performance.bybit_reader.Collector") as collector_factory, \
+                patch("performance.metrics.MetricPipeline") as metrics_factory, \
+                patch("performance.exporters.LogExporter", side_effect=ValueError(TEST_TOKEN)) as logs_factory:
+            with self.assertLogs("performance.runtime", level="WARNING") if log_flag else __import__("contextlib").nullcontext():
+                runtime.run()
+        reader_factory.assert_called_once_with(env)
+        collector_factory.return_value.snapshots.assert_called_once()
+        collector_factory.return_value.history.assert_called_once()
+        metrics_factory.assert_called_once_with(runtime, env)
+        if log_flag:
+            logs_factory.assert_called_once()
+        else:
+            logs_factory.assert_not_called()
+        self.assertTrue(any(name == "wins" and value == 1 and labels.get("scope") == "bot" for name, value, labels in runtime.cache))
+        self.assertIsNone(self.store.meta("projection_ack"))
+        self.assertEqual(self.store.db.execute("SELECT count(*) FROM outbox").fetchone()[0], 0)
+
+    def test_strategy_counts_and_position_unknown_without_any_loki(self):
+        from performance.observations import Mailbox
+        seed(self.store)
+        mailbox = Mailbox()
+        mailbox.emit("strategy_snapshot", {"rows": [{"symbol": "TESTUSDT", "watching": True,
+                                                        "candidate": True, "ready": True, "stall": 4}]})
+        self.store.observe(mailbox.take()[0])
+        runtime = Runtime({}, self.path.parent)
+        runtime.tick(self.store, None, None, 5000)
+        counts = {labels["state"]: value for name, value, labels in runtime.cache if name == "strategy_size"}
+        self.assertEqual(counts["watching"], 1)
+        self.assertEqual(counts["ready"], 1)
+        self.assertFalse(any(name == "positions" for name, value, labels in runtime.cache))
+        self.assertEqual(self.store.db.execute("SELECT count(*) FROM outbox").fetchone()[0], 0)

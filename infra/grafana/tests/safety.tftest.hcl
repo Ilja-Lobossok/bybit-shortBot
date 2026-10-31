@@ -64,16 +64,8 @@ run "label_injection_rejected" {
   expect_failures = [var.environment]
 }
 
-run "performance_opt_in" {
+run "performance_metrics_only_by_default" {
   command = plan
-  variables {
-    performance_dashboard_enabled = true
-    logs_datasource_uid           = "offline-loki"
-  }
-  override_data {
-    target = data.grafana_data_source.performance_logs[0]
-    values = { type = "loki" }
-  }
   assert {
     condition     = jsondecode(grafana_dashboard.trading_performance[0].config_json).uid == "bybit-trading-performance" && !grafana_dashboard.trading_performance[0].overwrite
     error_message = "Performance dashboard must have its own stable UID."
@@ -82,12 +74,19 @@ run "performance_opt_in" {
     condition     = alltrue([for r in grafana_rule_group.bot_health.rule : r.is_paused])
     error_message = "Adding performance dashboard must not enable health alerts."
   }
+  assert {
+    condition     = alltrue(flatten([for p in jsondecode(grafana_dashboard.trading_performance[0].config_json).panels : [for t in p.targets : t.datasource.type == "prometheus" && t.datasource.uid == "grafanacloud-prom"]]))
+    error_message = "Trading dashboard must require only the existing metrics datasource."
+  }
 }
 
-run "performance_requires_loki" {
+run "performance_optional_before_first_apply" {
   command = plan
   variables {
-    performance_dashboard_enabled = true
+    performance_dashboard_enabled = false
   }
-  expect_failures = [grafana_dashboard.trading_performance]
+  assert {
+    condition     = length(grafana_dashboard.trading_performance) == 0
+    error_message = "An explicit opt-out must not create the dashboard."
+  }
 }

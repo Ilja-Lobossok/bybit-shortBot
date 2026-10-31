@@ -4,7 +4,7 @@ from uuid import uuid4
 
 NAMES = (
     "wallet_balance", "equity", "unrealized_pnl", "exchange_cumulative_realized_pnl", "account_total_equity_usd",
-    "net_closed_pnl", "win_rate", "average_win", "average_loss", "profit_factor", "cycles", "breakeven",
+    "net_closed_pnl", "win_rate", "wins", "losses", "average_win", "average_loss", "profit_factor", "cycles", "breakeven",
     "fees", "funding", "realized_cash_change", "cash_adjusted_profit", "drawdown_ratio", "max_drawdown_ratio",
     "positions", "history_complete", "pending_records", "unattributed_records", "coverage_start_timestamp_seconds",
     "coverage_end_timestamp_seconds", "balance_timestamp_seconds", "positions_timestamp_seconds",
@@ -12,6 +12,7 @@ NAMES = (
     "projection_generation", "projection_expected_rows", "projection_truncated", "projection_timestamp_seconds",
     "process_start_timestamp_seconds", "order_counts", "decision_count", "profit_factor_no_losses",
     "cash_adjusted_as_of_timestamp_seconds", "kpi_window_complete",
+    "strategy_size",
 )
 
 
@@ -29,7 +30,7 @@ def points(store, view, summary, runtime, now):
         add(name, snapshot.get(field), scope="account", currency="USD" if name.endswith("usd") else "USDT")
     for stats in summary["statistics"]:
         labels = {"scope": stats["scope"], "window": stats["window"], "currency": "USDT"}
-        for name in ("net_pnl", "win_rate", "average_win", "average_loss", "profit_factor", "breakeven"):
+        for name in ("net_pnl", "win_rate", "wins", "losses", "average_win", "average_loss", "profit_factor", "breakeven"):
             add("net_closed_pnl" if name == "net_pnl" else name, stats[name], **labels)
         add("cycles", stats["n"], **labels)
         add("profit_factor_no_losses", int(stats["profit_factor_status"] == "no_losses"), **labels)
@@ -43,8 +44,15 @@ def points(store, view, summary, runtime, now):
             add(name, summary["transaction_totals"][key], scope="account", currency="USDT")
     add("cash_adjusted_profit", summary["cash_adjusted_profit"], scope="account", currency="USDT")
     add("cash_adjusted_as_of_timestamp_seconds", summary["cash_adjusted_as_of_ms"] / 1000 if summary["cash_adjusted_as_of_ms"] is not None else None)
-    for scope in ("account", "bot"):
-        add("positions", sum(scope == "account" or row["attribution_status"] == "bot" for row in view["positions"]), scope=scope)
+    if store.meta("positions_success_ms") is not None:
+        for scope in ("account", "bot"):
+            add("positions", sum(scope == "account" or row["attribution_status"] == "bot" for row in view["positions"]), scope=scope)
+    strategy_counts = store.meta("strategy_counts")
+    if strategy_counts:
+        import json
+        for state, value in json.loads(strategy_counts).items():
+            if state in ("watching", "candidate", "ready", "blocked", "stalling"):
+                add("strategy_size", value, state=state)
     add("history_complete", int(view["history_status"] == "covered"))
     add("pending_records", view["pending"])
     add("unattributed_records", view["unattributed"])

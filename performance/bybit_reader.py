@@ -18,12 +18,12 @@ class ReadError(RuntimeError):
 
 class Reader:
     def __init__(self, env, *, session=None, clock=time.time, monotonic=time.monotonic, sleep=time.sleep):
-        self.key = env.get("PERFORMANCE_BYBIT_API_KEY", "")
-        self.secret = env.get("PERFORMANCE_BYBIT_API_SECRET", "")
+        self.key = env.get("BYBIT_API_KEY", "")
+        self.secret = env.get("BYBIT_API_SECRET", "")
         if not self.key or not self.secret:
-            raise ReadError("Set separate performance read-only credentials")
+            raise ReadError("Existing Bybit credentials unavailable to GET collector")
         self.fingerprint = hashlib.sha256(self.key.encode()).hexdigest()
-        self.base = "https://api-testnet.bybit.com" if env.get("PERFORMANCE_BYBIT_TESTNET", "false").lower() == "true" else "https://api.bybit.com"
+        self.base = "https://api-testnet.bybit.com" if env.get("BYBIT_TESTNET", "false").lower() == "true" else "https://api.bybit.com"
         if session is None:
             import requests
             session = requests.Session()
@@ -51,6 +51,9 @@ class Reader:
             response = self.session.get(self.base + PATHS[kind] + "?" + query, headers=headers,
                                         timeout=(2, 5), allow_redirects=False, stream=True)
             with response:
+                if response.status_code == 403:
+                    self.backoff = self.monotonic() + 600
+                    raise ReadError("Read collector IP backoff")
                 if response.status_code != 200:
                     raise ReadError("Read collector HTTP failure")
                 # Never allocate an unbounded response body.
@@ -69,7 +72,7 @@ class Reader:
                     self.next_request = self.monotonic() + 60
                 return value
         except Exception:
-            self.backoff = self.monotonic() + 60
+            self.backoff = max(self.backoff, self.monotonic() + 60)
             raise ReadError("Read collector failed; details suppressed") from None
 
     def pages(self, kind, params):

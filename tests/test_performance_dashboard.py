@@ -29,36 +29,34 @@ class DashboardTests(Offline):
             cells |= occupied
         self.assertEqual(dashboard["uid"], "bybit-trading-performance")
         terraform = (ROOT / "infra/grafana/performance.tf").read_text()
-        self.assertIn('default     = false', terraform)
+        self.assertIn('default     = true', terraform)
         self.assertNotRegex(terraform.lower(), r'(resource|provider)\s+"render')
         self.assertNotIn("provisioner", terraform)
 
-    def test_no_per_entity_metric_labels_or_loki_index_labels(self):
+    def test_only_existing_metrics_datasource_and_no_per_entity_labels(self):
         dashboard = self.dashboard()
         for panel in dashboard["panels"]:
             for target in panel.get("targets", []):
                 expr = target.get("expr", "")
-                if target.get("datasource", {}).get("type") == "prometheus":
-                    self.assertNotRegex(expr, r'\{[^}]*\b(order_id|exec_id|symbol|generation)=')
-                if target.get("datasource", {}).get("type") == "loki":
-                    self.assertTrue(expr.startswith('{service_name="bybit-performance"}') or expr.startswith("count("))
-                    self.assertIn("generation=${projection}", expr)
+                self.assertEqual(target["datasource"], {"type": "prometheus", "uid": "__METRICS_DATASOURCE_UID__"})
+                self.assertNotRegex(expr, r'\{[^}]*\b(order_id|exec_id|symbol|generation)=')
+                self.assertNotIn("projection", expr)
 
-    def test_projection_variable_uses_scalar_not_vector_sample_timestamp(self):
-        variable = next(v for v in self.dashboard()["templating"]["list"] if v["name"] == "projection")
-        self.assertIn("query_result(scalar(", variable["query"]["query"])
-        regex = variable["regex"].strip("/")
-        self.assertEqual(re.match(regex, "1793400000123").group(1), "1793400000123")
-        self.assertIsNone(re.match(regex, "{} 123 1793400000123"))
-        self.assertIsNone(re.match(regex, "NaN"))
-
-    def test_integrity_panels_check_counts_freshness_and_truncation(self):
+    def test_no_loki_credentials_datasource_or_generation_setup(self):
         dashboard = self.dashboard()
-        for panel in dashboard["panels"]:
-            if panel["id"] in (26, 27, 28):
-                text = json.dumps(panel)
-                for marker in ("projection_expected_rows", "projection_truncated", "projection_timestamp_seconds", "storage_degraded", "$A == $B"):
-                    self.assertIn(marker, text)
+        text = json.dumps(dashboard)
+        self.assertNotIn("loki", text.lower())
+        self.assertEqual({v["name"] for v in dashboard["templating"]["list"]}, {"scope", "window", "account"})
+        terraform = (ROOT / "infra/grafana/performance.tf").read_text()
+        self.assertNotIn("logs_datasource_uid", terraform)
+        self.assertNotIn("performance_logs", terraform)
+
+    def test_requested_financial_and_strategy_metrics_have_panels(self):
+        text = json.dumps(self.dashboard())
+        for suffix in ("wallet_balance", "equity", "exchange_cumulative_realized_pnl", "unrealized_pnl",
+                       "net_closed_pnl", "wins", "losses", "win_rate", "profit_factor", "positions", "strategy_size", "decision_count"):
+            self.assertIn("bot_performance_" + suffix, text)
+        self.assertGreaterEqual(sum(p["type"] == "timeseries" for p in self.dashboard()["panels"]), 2)
 
     def test_decimal_export_is_read_only_and_never_overwrites(self):
         from scripts.performance_export import export

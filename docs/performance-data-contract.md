@@ -10,7 +10,10 @@ Legacy P&L из risk history не импортируется в финансов
 `performance/bybit_reader.py` содержит отдельную signed HTTPS session с allowlist
 шести GET endpoints: wallet-balance, position/list, execution/list, order/history,
 position/closed-pnl, account/transaction-log. Place/cancel/amend/transfer отсутствуют.
-Ключи `PERFORMANCE_BYBIT_*` отдельные; fallback на торговый ключ запрещён.
+Используются существующие `BYBIT_API_KEY`, `BYBIT_API_SECRET`, `BYBIT_TESTNET`.
+HTTP session отдельная от торговой; allowlist по-прежнему разрешает только GET.
+Новых credentials нет. Ключи захватываются из process env до dotenv вместе с
+существующим OTLP credential; не передаются в metric labels/SQLite/Loki.
 Сохраняются только поля из `performance/contracts.py`, без полного request/response,
 headers, произвольных текстов ошибок, orderLinkId и адресов кошельков.
 
@@ -25,7 +28,7 @@ Float используется только для OTLP gauge представл
 Дедуп: execution — execId, transaction — id, order/closedPnL — symbol+orderId.
 Перечитанная изменённая запись получает revision, не второй результат. Более
 старый updatedTime не перезаписывает новый. Account separation: fingerprint
-read-only API key привязан к DB. При ротации ключа автоматическое продолжение
+существующего API key привязан к DB. При ротации ключа автоматическое продолжение
 запрещено: сначала оператор подтверждает тот же аккаунт и согласует перенос binding
 или отдельный журнал. Fingerprint не является доказательством exchange account UID.
 
@@ -34,7 +37,8 @@ read-only API key привязан к DB. При ротации ключа ав�
 Snapshots раз в ~60s; history раз в ~300s. Это интервалы запуска, не SLA: GET и
 пагинация занимают время в фоне. Request rate ≤1/s, connect/read 2/5s, stream cap
 2MiB и проверка общего elapsed time между chunks. При ошибке 60s backoff,
-без немедленного retry. Низкий X-Bapi-Limit-Status увеличивает паузу до 60s.
+без немедленного retry; HTTP403 — 10m backoff коллектора. Низкий
+X-Bapi-Limit-Status увеличивает паузу до 60s. Торговая retry policy не меняется.
 Общие IP/UID quota и CPU/disk с торговлей остаются общими.
 
 История по умолчанию последние 7d, `PERFORMANCE_HISTORY_DAYS=1..730` только при
@@ -97,7 +101,7 @@ Account wallet/equity нельзя честно разделить на bot/manu
 
 - Wallet raw, USDT coin equity/UPL/cumulative realized и total equity USD — Bybit
   snapshots. Mark берётся из позиции; historical equity до сбора отсутствует.
-- Net closed P&L, win rate, averages, PF, N — по сверенным полным циклам, окна
+- Net closed P&L, wins/losses, win rate, averages, PF, N — по сверенным полным циклам, окна
   all-covered / текущий UTC day / rolling 7d / 30d. Time picker рисует observations,
   а не пересчитывает произвольное SQL-окно. Coverage окна показан отдельно.
 - N=0: P&L/win rate/PF unknown. Без losses PF не конечное число; флаг no_losses.
@@ -132,12 +136,27 @@ Crash до приёма observer не даёт exactly-once decision history. Pe
 дедуп по run:sequence; повторная обработка свечи после restart видна как новое
 наблюдение. Предыдущий риск повторной обработки свечи не исправлялся.
 
-## Projection / Loki
+## Metrics-only dashboard / необязательный Loki
+
+Основной Trading Dashboard читает **только существующий Cloud Metrics datasource**.
+Таблицы позиций/сделок и LogQL/generation variables удалены из dashboard; для
+запуска не нужен logs token, Logs datasource UID или проверка Loki transforms.
+Watchlist/candidates/ready/blocked/stalling — bounded `strategy_size{state=...}`
+gauges, счётчики реальных решений — `decision_count{reason=...}`. Counts вычисляются
+по полному уже наблюдённому списку до ограничения detailed rows, без повторного
+вызова стратегии; сохраняются в SQLite. До первого snapshot positions/strategy
+не публикуются как фиктивный ноль. Новые financial instruments используют прежний
+OTLP endpoint/username/token; прежние health metrics не содержали этих сумм.
+
+Loki оставлен только как отключённый optional export: default false, отдельный
+optional код не является зависимостью обновления финансового cache. При отсутствии
+logs-токена или ошибке отправки metrics/SQLite/торговля продолжаются. Дальнейшее
+описание projection относится только к этому необязательному пути, не dashboard.
 
 Индексируемый resource: service.name=bybit-performance; environment/account_alias
 конечные metadata/labels. Никаких symbol/order/exec/generation index labels.
 Body allowlisted, exact Decimal strings; никаких raw API payloads/secrets.
-Metric labels только scope/window/currency/kind/reason/outcome + постоянный alias.
+Metric labels только scope/window/currency/kind/state/reason/outcome + постоянный alias.
 
 Каждая generation публикует canonical latest view: ≤200 positions, ≤1000 cycle /
 unmatched closing-order records, ≤200 strategy rows + manifest expected/truncated.
@@ -153,12 +172,9 @@ retries и общий quota stack. Лимит 2MiB не является обе�
 Outbox содержит одну generation ≤2MiB, максимум 3 HTTP попытки за 15m, затем
 supersede с error indicator. Ack только HTTP200 без OTLP partial_success; raw
 retries не считаются сделками. Attempts сохраняются до send, crash не обнуляет
-лимит. Графана выбирает ack generation через scalar query_result, проверяет
-unique entity count / expected / truncation / freshness / degraded. Table query
-limit 5000 > 3×1000, одинаковые entity дедуп через groupBy. При меньшем внешнем
-Cloud/query лимите integrity KPI не гарантирует число строк именно table response:
-**перед production требуется синтетическая Cloud проверка configured limit и transforms**.
-Нельзя интерпретировать пустую таблицу как отсутствие позиций при integrity≠1.
+лимит. Основной metrics-only dashboard не использует generation/manifest и не
+требует этого канала. Если в будущем отдельно разрешат log tables, их presentation
+и Cloud limits надо проверять отдельно; это не gate текущего deploy.
 
 Offline projection oracle проверяет missing rows, retry, latest correction,
 empty tombstone, truncation и expiry. Это не live тест версии Grafana/Loki.
@@ -176,7 +192,10 @@ Strategy detail/observation IDs 7d; financial facts/revisions/equity не уда
 SQLite backup API создаёт новый private файл и проверяет integrity; backup на
 том же диске не DR. SQLite connection закрывается явно (важно на Windows).
 
-Все defaults false. Метрики раз в 60s через существующий OTLP HTTPS factory и
+`PERFORMANCE_ENABLED` наследует существующий `MONITORING_ENABLED`; explicit false
+отключает performance. GET collector включён вместе с performance, explicit
+`PERFORMANCE_READONLY_API_ENABLED=false` отключает только GET. Новые обязательные
+Render vars отсутствуют. Logs default false. Метрики раз в 60s через существующий OTLP HTTPS factory и
 safe exporter, logs single attempt с bounded time/body, только background thread.
 Ошибка telemetry/SQL/collector не входит в торговый retry. Если worker analytics
 полностью погиб, freshness пропадёт; health heartbeat основного бота остаётся

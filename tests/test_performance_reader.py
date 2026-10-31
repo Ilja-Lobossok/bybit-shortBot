@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from performance.bybit_reader import Reader, Collector, ReadError, DAY
 from tests.performance_fixtures import Offline, position, wallet
 
-ENV = {"PERFORMANCE_BYBIT_API_KEY": "synthetic-key", "PERFORMANCE_BYBIT_API_SECRET": "synthetic-secret"}
+ENV = {"BYBIT_API_KEY": "synthetic-key", "BYBIT_API_SECRET": "synthetic-secret"}
 
 
 class Response:
@@ -32,7 +32,7 @@ class ReaderTests(Offline):
         self.sleep = Mock()
         return Reader(ENV, session=self.session, clock=lambda: 1, monotonic=lambda: 1, sleep=self.sleep)
 
-    def test_only_get_allowlist_and_separate_credentials(self):
+    def test_only_get_allowlist_with_existing_credentials(self):
         reader = self.reader()
         for kind in ("positions", "orders", "executions", "closed_pnl", "transactions", "wallet"):
             reader.get(kind, {})
@@ -42,8 +42,22 @@ class ReaderTests(Offline):
         self.assertEqual(self.session.get.call_count, 6)
         self.session.post.assert_not_called()
         self.session.request.assert_not_called()
+        self.assertEqual(reader.key, ENV["BYBIT_API_KEY"])
+        self.assertEqual(reader.secret, ENV["BYBIT_API_SECRET"])
         with self.assertRaises(ReadError):
-            Reader({"BYBIT_API_KEY": "trading-key", "BYBIT_API_SECRET": "trading-secret"})
+            Reader({"PERFORMANCE_BYBIT_API_KEY": "unused", "PERFORMANCE_BYBIT_API_SECRET": "unused"})
+
+    def test_get_collector_uses_existing_testnet_flag(self):
+        for flag, base in (("true", "https://api-testnet.bybit.com"), ("false", "https://api.bybit.com")):
+            reader = Reader(dict(ENV, BYBIT_TESTNET=flag), session=Mock())
+            self.assertEqual(reader.base, base)
+
+    def test_http_403_backs_off_collector_for_ten_minutes(self):
+        reader = self.reader()
+        self.session.get.return_value = Response({}, status=403)
+        with self.assertRaises(ReadError):
+            reader.get("wallet", {})
+        self.assertEqual(reader.backoff, 601)
 
     def test_signature_headers_timeouts_and_query(self):
         reader = self.reader()

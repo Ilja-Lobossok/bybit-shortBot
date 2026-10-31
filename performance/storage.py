@@ -178,6 +178,7 @@ class Store:
                     self.db.execute("INSERT OR REPLACE INTO strategy_current VALUES(?,?)",
                                     (item["symbol"], encoded(item)))
                 self.set_meta("strategy_success_ms", event["time_ms"])
+                self.set_meta("strategy_counts", encoded(body.get("counts", {})))
             self.db.execute("INSERT INTO strategy_events VALUES(?,?,?,?,?,?)",
                             (event["id"], event["time_ms"], event["kind"], body.get("symbol", ""),
                              body.get("reason", "none"), encoded(body)))

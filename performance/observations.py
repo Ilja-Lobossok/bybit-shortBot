@@ -11,7 +11,7 @@ REASONS = frozenset(("not_usdt", "invalid_market", "turnover", "pump", "near_hig
                      "below_tp", "ready", "position_limit", "balance", "risk", "exchange_position",
                      "funds", "missing_price", "min_order", "accepted", "pending", "order_error", "none"))
 KEYS = ("PERFORMANCE_ENABLED", "PERFORMANCE_READONLY_API_ENABLED", "PERFORMANCE_LOG_EXPORT_ENABLED",
-        "PERFORMANCE_BYBIT_API_KEY", "PERFORMANCE_BYBIT_API_SECRET", "PERFORMANCE_BYBIT_TESTNET",
+        "MONITORING_ENABLED", "BYBIT_API_KEY", "BYBIT_API_SECRET", "BYBIT_TESTNET",
         "PERFORMANCE_HISTORY_DAYS", "PERFORMANCE_ACCOUNT_ALIAS", "PERFORMANCE_GRAFANA_LOGS_TOKEN",
         "MONITORING_ENVIRONMENT", "OTEL_EXPORTER_OTLP_ENDPOINT", "GRAFANA_CLOUD_OTLP_USERNAME",
         "GRAFANA_CLOUD_API_TOKEN")
@@ -19,9 +19,16 @@ KEYS = ("PERFORMANCE_ENABLED", "PERFORMANCE_READONLY_API_ENABLED", "PERFORMANCE_
 
 def capture_environment(env=None):
     env = os.environ if env is None else env
-    if env.get("PERFORMANCE_ENABLED", "false").lower() != "true":
+    if not is_enabled(env):
         return MappingProxyType({"PERFORMANCE_ENABLED": "false"})
-    return MappingProxyType({key: env[key] for key in KEYS if key in env})
+    values = {key: env[key] for key in KEYS if key in env}
+    values["PERFORMANCE_ENABLED"] = "true"
+    return MappingProxyType(values)
+
+
+def is_enabled(env):
+    """Follow the already deployed monitoring flag; an explicit override wins."""
+    return env.get("PERFORMANCE_ENABLED", env.get("MONITORING_ENABLED", "false")).lower() == "true"
 
 
 class Disabled:
@@ -102,6 +109,11 @@ class Mailbox:
                                  for x in body.get("entries", [])[:500]]
         else:
             copied["rows"] = []
+            actual_rows = body.get("rows", [])
+            copied["counts"] = {state: sum(row.get(state) is True for row in actual_rows)
+                                for state in ("watching", "candidate", "ready", "blocked")}
+            copied["counts"]["stalling"] = sum(row.get("watching") is True and decimal(row.get("stall", 0)) > 0 for row in actual_rows)
+            copied["rows_truncated"] = len(actual_rows) > 500
             for row in body.get("rows", [])[:500]:
                 value = {"symbol": safe_symbol(row["symbol"])}
                 for key in ("pump_pct", "last", "near_high", "local_high", "stall", "updated_ts", "candle_ms"):

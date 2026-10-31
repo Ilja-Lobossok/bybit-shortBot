@@ -1,4 +1,4 @@
-"""Default-off background writer/reader/export. Failures never escape into trading."""
+"""Follow existing monitoring enablement; optional logs cannot block metric refresh."""
 import json
 import logging
 from pathlib import Path
@@ -6,7 +6,7 @@ import re
 import threading
 import time
 
-from performance.observations import DISABLED, Mailbox, REASONS
+from performance.observations import DISABLED, Mailbox, REASONS, is_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +30,8 @@ class Runtime(Mailbox):
         self._stop.set()  # No flush/join on trading path.
 
     def tick(self, store, collector, logs, now, *, history=False):
-        from performance.storage import BudgetExceeded, encoded
         from performance.reconciliation import reconcile, summaries
         from performance.metrics import points
-        from performance.projections import generation
         self.degraded = 0
         for event in self.take():
             try:
@@ -52,8 +50,18 @@ class Runtime(Mailbox):
                         self.degraded = 1
         view = reconcile(store, now)
         summary = summaries(store, view, now)
+        if logs:
+            try:
+                self.publish_logs(store, view, logs, now)
+            except Exception:
+                self.errors += 1  # optional logs cannot discard valid financial metrics
+        self.cache = points(store, view, summary, self, now)
+
+    def publish_logs(self, store, view, logs, now):
+        from performance.storage import encoded
+        from performance.projections import generation
         has_pending = store.db.execute("SELECT 1 FROM outbox LIMIT 1").fetchone() is not None
-        if logs and (has_pending or now >= int(store.meta("next_projection_ms", 0))):
+        if has_pending or now >= int(store.meta("next_projection_ms", 0)):
             # One durable pending generation. Retry at most once per tick, and
             # supersede after 15m (explicit gap), never accumulate an infinite queue.
             pending = store.db.execute("SELECT * FROM outbox LIMIT 1").fetchone()
@@ -87,7 +95,6 @@ class Runtime(Mailbox):
                     store.db.execute("DELETE FROM outbox WHERE generation=?", (batch["generation"],))
             else:
                 self.errors += 1
-        self.cache = points(store, view, summary, self, now)
 
     def run(self):
         from performance.storage import Store
@@ -95,7 +102,7 @@ class Runtime(Mailbox):
         try:
             store = Store(self.disk_path / "performance.sqlite3")
             collector = None
-            if self.env.get("PERFORMANCE_READONLY_API_ENABLED", "false").lower() == "true":
+            if self.env.get("PERFORMANCE_READONLY_API_ENABLED", "true").lower() == "true":
                 from performance.bybit_reader import Reader, Collector
                 reader = Reader(self.env)
                 store.bind_account(reader.fingerprint)
@@ -158,7 +165,7 @@ class Runtime(Mailbox):
 
 
 def start_performance(env, disk_path):
-    if env.get("PERFORMANCE_ENABLED", "false").lower() != "true":
+    if not is_enabled(env):
         return DISABLED
     try:
         for key, default in (("MONITORING_ENVIRONMENT", "production"), ("PERFORMANCE_ACCOUNT_ALIAS", "primary")):

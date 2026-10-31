@@ -1,5 +1,11 @@
 # Этап 4 — Trading Performance: архитектура и план
 
+**Уточнение 31.10.2026:** пользователь упростил scope: существующие Bybit/OTLP
+credentials, metrics-only Trading Dashboard, SQLite, Loki полностью optional.
+Требования ниже про новый read-only key, обязательный Logs/Cloud PoC и opt-in
+defaults относятся к исходному предложению и заменены текущей
+[инструкцией реализации](monitoring-stage4.md). Новый план не требуется.
+
 Архитектура утверждена; реализация и эксплуатационные gates описаны в
 [monitoring-stage4.md](monitoring-stage4.md), точность — в
 [performance-data-contract.md](performance-data-contract.md). Ниже сохранён
