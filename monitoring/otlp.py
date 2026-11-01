@@ -50,7 +50,9 @@ class CloudCredentials:
         return cls(base.rstrip("/") + "/v1/metrics", username, token)
 
 
-def create_otlp_exporter(credentials, *, timeout_seconds=5.0, exporter_type=None):
+def create_otlp_exporter(credentials, *, timeout_seconds=5.0, exporter_type=None, max_request_bytes=64 * 1024):
+    if type(max_request_bytes) is not int or not 1 <= max_request_bytes <= 1024 * 1024:
+        raise ConfigurationError("max_request_bytes must be a positive integer no greater than 1 MiB")
     # Lazy imports keep disabled live monitoring independent of the SDK.
     import requests
     if exporter_type is None:
@@ -65,7 +67,7 @@ def create_otlp_exporter(credentials, *, timeout_seconds=5.0, exporter_type=None
         return exporter_type(
             endpoint=credentials.endpoint,
             headers={"Authorization": "Basic " + authorization},
-            timeout=timeout_seconds, session=session, max_request_size=64 * 1024,
+            timeout=timeout_seconds, session=session, max_request_size=max_request_bytes,
         )
     except BaseException:
         session.close()

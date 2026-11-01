@@ -58,6 +58,14 @@ At 81 positions, approximately 324 per-position active series are added; the
 Symbol churn affects Cloud active-series usage and must be checked during release;
 Cloud retention/quota depends on the existing account's actual plan.
 
+The performance exporter uses a bounded 1 MiB request ceiling. The original
+64 KiB smoke/health ceiling remains unchanged: a full per-position payload can
+exceed it, and the SDK drops such a batch before HTTP rather than splitting it
+automatically. Real SDK/HTTP-boundary regression tests cover 82 positions and
+the 200-curve cap plus 200 tombstones with maximum-size UTF-8 labels. The 5s
+timeout and periodic export cadence are unchanged; no additional queue/retries
+or additional per-batch requests are introduced.
+
 ## Observations and SQLite v2
 
 Migration `002_position_risk.sql` is transactional and additive. It does not

@@ -3,6 +3,10 @@ import time
 from uuid import uuid4
 from performance.contracts import decimal as D
 
+# At most 200 active symbol/direction curves plus <=200 short-lived tombstones.
+# Their full real OTLP body exceeds the original smoke-test 64 KiB cap.
+MAX_PERFORMANCE_REQUEST_BYTES = 1024 * 1024
+
 NAMES = (
     "wallet_balance", "equity", "unrealized_pnl", "exchange_cumulative_realized_pnl", "account_total_equity_usd",
     "net_closed_pnl", "win_rate", "wins", "losses", "average_win", "average_loss", "profit_factor", "cycles", "breakeven",
@@ -117,7 +121,8 @@ class MetricPipeline:
         from opentelemetry.sdk.resources import Resource
         from monitoring.metrics import SafeExporter
         from monitoring.otlp import CloudCredentials, create_otlp_exporter
-        delegate = exporter if exporter is not None else create_otlp_exporter(CloudCredentials.from_env(env))
+        delegate = exporter if exporter is not None else create_otlp_exporter(
+            CloudCredentials.from_env(env), max_request_bytes=MAX_PERFORMANCE_REQUEST_BYTES)
         safe = SafeExporter(delegate, runtime)
         reader = PeriodicExportingMetricReader(safe, export_interval_millis=60_000, export_timeout_millis=5000)
         self.provider = MeterProvider(metric_readers=[reader, *extra_readers], shutdown_on_exit=False,
