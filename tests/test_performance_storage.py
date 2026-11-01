@@ -9,7 +9,7 @@ from tests.performance_fixtures import Offline, seed, position, wallet
 
 class StorageTests(Offline):
     def test_migration_durability_and_reopen(self):
-        self.assertEqual(self.store.db.execute("PRAGMA user_version").fetchone()[0], 1)
+        self.assertEqual(self.store.db.execute("PRAGMA user_version").fetchone()[0], 2)
         self.assertEqual(self.store.db.execute("PRAGMA journal_mode").fetchone()[0], "wal")
         self.assertEqual(self.store.db.execute("PRAGMA synchronous").fetchone()[0], 2)
         seed(self.store)

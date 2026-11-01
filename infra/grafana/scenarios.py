@@ -126,4 +126,6 @@ def scenarios():
     cases.append(scenario("old higher RSS cannot mask the newest process", overlap, expressions=[{
         "expr": memory_expr.replace("__ENVIRONMENT__", "production"), "eval_time": "12m",
         "exp_samples": [{"labels": "{}", "value": 50000000}]}]))
+    from position_scenarios import scenarios as position_scenarios
+    cases.extend(position_scenarios(series, scenario))
     return {"rule_files": ["rules.yaml"], "evaluation_interval": "1m", "tests": cases}

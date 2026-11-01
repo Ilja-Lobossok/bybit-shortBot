@@ -1,6 +1,7 @@
 """Bounded aggregate gauges through the existing OTLP credential/transport code."""
 import time
 from uuid import uuid4
+from performance.contracts import decimal as D
 
 NAMES = (
     "wallet_balance", "equity", "unrealized_pnl", "exchange_cumulative_realized_pnl", "account_total_equity_usd",
@@ -13,6 +14,11 @@ NAMES = (
     "process_start_timestamp_seconds", "order_counts", "decision_count", "profit_factor_no_losses",
     "cash_adjusted_as_of_timestamp_seconds", "kpi_window_complete",
     "strategy_size",
+    "open_unrealized_pnl", "open_realized_pnl", "open_combined_pnl", "open_money_complete",
+    "open_positive", "open_negative", "open_breakeven", "open_average_loss", "open_worst_loss", "open_best_pnl",
+    "position_combined_pnl", "position_active", "position_observation_timestamp_seconds", "position_run_start_timestamp_seconds",
+    "position_worst_observed_loss", "position_average_observed_loss", "position_graph_truncated", "position_observation_gaps",
+    "position_risk_first_timestamp_seconds", "cost_breakdown_complete", "realized_price_change", "closed_statistics_status",
 )
 
 
@@ -45,8 +51,28 @@ def points(store, view, summary, runtime, now):
     add("cash_adjusted_profit", summary["cash_adjusted_profit"], scope="account", currency="USDT")
     add("cash_adjusted_as_of_timestamp_seconds", summary["cash_adjusted_as_of_ms"] / 1000 if summary["cash_adjusted_as_of_ms"] is not None else None)
     if store.meta("positions_success_ms") is not None:
+        from performance.open_positions import summarize, risk_points
         for scope in ("account", "bot"):
-            add("positions", sum(scope == "account" or row["attribution_status"] == "bot" for row in view["positions"]), scope=scope)
+            selected = [row for row in view["positions"] if scope == "account" or row["attribution_status"] == "bot"]
+            add("positions", len(selected), scope=scope)
+            stats = summarize(selected)
+            for field, name in (("unrealized", "open_unrealized_pnl"), ("realized", "open_realized_pnl"),
+                                ("combined", "open_combined_pnl"), ("complete", "open_money_complete"),
+                                ("positive", "open_positive"), ("negative", "open_negative"), ("breakeven", "open_breakeven"),
+                                ("average_loss", "open_average_loss"), ("worst_loss", "open_worst_loss"), ("best", "open_best_pnl")):
+                add(name, stats[field], scope=scope, currency="USDT")
+        result.extend(risk_points(store, view["positions"], now))
+    for stats in summary["statistics"]:
+        # 0 = incomplete, 1 = no verified closures, 2 = verified sample.
+        status = 0 if not stats["coverage_complete"] else 1 if stats["n"] == 0 else 2
+        add("closed_statistics_status", status, scope=stats["scope"], window=stats["window"], currency="USDT")
+    cost_complete = view["history_status"] == "covered" and summary["transaction_totals"]["classification_complete"]
+    add("cost_breakdown_complete", int(cost_complete), scope="account", currency="USDT")
+    if cost_complete:
+        totals = summary["transaction_totals"]
+        # change = cashFlow + funding - fee. These are a decomposition, not
+        # amounts to subtract from open_combined_pnl or reconciled cycle net.
+        add("realized_price_change", D(totals["realized"]) - D(totals["funding"]) + D(totals["fees"]), scope="account", currency="USDT")
     strategy_counts = store.meta("strategy_counts")
     if strategy_counts:
         import json

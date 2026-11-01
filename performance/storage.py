@@ -45,7 +45,13 @@ class Store:
             self.db.executescript("BEGIN IMMEDIATE;\n" + sql +
                                   "\nINSERT INTO schema_migrations VALUES(1," + str(int(time.time() * 1000)) + ");"
                                   "\nPRAGMA user_version=1;\nCOMMIT;")
-        elif version != 1:
+            version = 1
+        if version == 1:
+            sql = (Path(__file__).parent / "migrations/002_position_risk.sql").read_text()
+            self.db.executescript("BEGIN IMMEDIATE;\n" + sql +
+                                  "\nINSERT INTO schema_migrations VALUES(2," + str(int(time.time() * 1000)) + ");"
+                                  "\nPRAGMA user_version=2;\nCOMMIT;")
+        elif version != 2:
             self.close()
             raise ValueError("Unsupported performance schema")
 
@@ -133,11 +139,17 @@ class Store:
         if len(keys) != len(set(keys)):
             raise ValueError("Duplicate position identity")
         with self.db:
+            if now <= int(self.meta("positions_success_ms", 0)):
+                return
             self.db.execute("DELETE FROM positions_current")
+            open_values = []
             for value in values:
                 if decimal(value["size"]) > 0:
                     key = value["symbol"] + ":" + str(value["positionIdx"])
                     self.db.execute("INSERT INTO positions_current VALUES(?,?,?)", (key, now, encoded(value)))
+                    open_values.append(value)
+            from performance.open_positions import record
+            record(self, open_values, now)
             self.set_meta("positions_success_ms", now)
 
     def snapshot(self, response, now):
@@ -195,6 +207,8 @@ class Store:
         # Only observation detail and export scratch expire. Financial facts and
         # equity samples are never silently deleted; cap pauses collection instead.
         with self.db:
+            from performance.open_positions import prune
+            prune(self, now)
             self.db.execute("DELETE FROM strategy_events WHERE event_ms<?", (now - 7 * DAY,))
             self.db.execute("DELETE FROM observations WHERE event_ms<?", (now - 7 * DAY,))
             self.db.execute("DELETE FROM sync_windows WHERE status='incomplete' AND end_ms<?", (now - 14 * DAY,))
