@@ -39,14 +39,17 @@ class DashboardTests(Offline):
             for target in panel.get("targets", []):
                 expr = target.get("expr", "")
                 self.assertEqual(target["datasource"], {"type": "prometheus", "uid": "__METRICS_DATASOURCE_UID__"})
-                self.assertNotRegex(expr, r'\{[^}]*\b(order_id|exec_id|symbol|generation)=')
+                self.assertNotRegex(expr, r'\{[^}]*\b(order_id|exec_id|generation)=')
+                if 'symbol=~' in expr:
+                    self.assertEqual(panel['id'], 111)
+                    self.assertIn('${position_symbol:regex}', expr)
                 self.assertNotIn("projection", expr)
 
     def test_no_loki_credentials_datasource_or_generation_setup(self):
         dashboard = self.dashboard()
         text = json.dumps(dashboard)
         self.assertNotIn("loki", text.lower())
-        self.assertEqual({v["name"] for v in dashboard["templating"]["list"]}, {"scope", "window", "account"})
+        self.assertEqual({v["name"] for v in dashboard["templating"]["list"]}, {"scope", "window", "account", "position_symbol", "position_limit"})
         terraform = (ROOT / "infra/grafana/performance.tf").read_text()
         self.assertNotIn("logs_datasource_uid", terraform)
         self.assertNotIn("performance_logs", terraform)
@@ -57,6 +60,32 @@ class DashboardTests(Offline):
                        "net_closed_pnl", "wins", "losses", "win_rate", "profit_factor", "positions", "strategy_size", "decision_count"):
             self.assertIn("bot_performance_" + suffix, text)
         self.assertGreaterEqual(sum(p["type"] == "timeseries" for p in self.dashboard()["panels"]), 2)
+
+    def test_portfolio_first_hidden_legend_and_honest_history_status(self):
+        dashboard = self.dashboard()
+        self.assertTrue(dashboard['editable'])
+        main = [p for p in dashboard['panels'] if p['type'] != 'row']
+        self.assertIn('scope="account"', next(p for p in main if p['id'] == 101)['targets'][0]['expr'])
+        self.assertIn('open_combined_pnl', next(p for p in main if p['id'] == 100)['targets'][0]['expr'])
+        self.assertNotIn('profit_factor', json.dumps(main))
+        graph = next(p for p in main if p['id'] == 111)
+        self.assertFalse(graph['options']['legend']['showLegend'])
+        self.assertFalse(graph['fieldConfig']['defaults']['custom']['spanNulls'])
+        self.assertIn('position_active', graph['targets'][0]['expr'])
+        self.assertIn('position_observation_timestamp_seconds', graph['targets'][0]['expr'])
+        self.assertIn('position_run_start_timestamp_seconds', graph['targets'][0]['expr'])
+        self.assertIn('>= 60', graph['targets'][0]['expr'])
+        curve = next(p for p in main if p['title'] == 'Account equity and wallet history (USDT)')
+        self.assertEqual(curve['fieldConfig']['defaults']['custom'], {'axisSoftMin': 400, 'axisSoftMax': 500})
+        ids = [p['id'] for p in main]
+        for row in dashboard['panels']:
+            if row['type'] != 'row':
+                continue
+            self.assertTrue(row['collapsed'])
+            ids.append(row['id'])
+            ids.extend(p['id'] for p in row['panels'])
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertIn('Нет подтверждённых закрытий', json.dumps(dashboard, ensure_ascii=False))
 
     def test_decimal_export_is_read_only_and_never_overwrites(self):
         from scripts.performance_export import export

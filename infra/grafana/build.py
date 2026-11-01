@@ -17,6 +17,7 @@ def resolve(expr, environment="production"):
     return (expr.replace("__ENVIRONMENT__", environment)
             .replace("${operation:regex}", ".*").replace("$__range", "30m")
             .replace("${account}", "primary").replace("${scope}", "bot").replace("${window}", "all")
+            .replace("${position_symbol:regex}", ".*").replace("${position_limit}", "200")
             .replace("${projection}", "12345"))
 
 
@@ -32,7 +33,7 @@ def promtool_rules():
     queries = [{"record": f"test:panel_{panel['id']}_{target['refId']}", "expr": resolve(target["expr"])}
                for panel in catalog.dashboard()["panels"] for target in panel.get("targets", [])]
     queries.extend({"record": f"test:performance_{panel['id']}_{target['refId']}", "expr": resolve(target["expr"])}
-                   for panel in performance_catalog.dashboard()["panels"] for target in panel.get("targets", [])
+                   for panel in performance_catalog.all_panels(performance_catalog.dashboard()) for target in panel.get("targets", [])
                    if target.get("datasource", {}).get("type") == "prometheus")
     return {"groups": [{"name": "bot-health", "interval": "1m", "rules": alerts},
                        {"name": "dashboard-query-syntax", "interval": "1m", "rules": queries}]}

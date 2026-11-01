@@ -1,5 +1,9 @@
 # Этап 4: Trading Dashboard — только метрики
 
+Обновление от 01.11.2026: сводка открытых позиций, наблюдавшиеся убытки,
+график отдельных позиций и SQLite v2 описаны в [monitoring-open-positions.md](monitoring-open-positions.md).
+Ниже сохранён исходный scope этапа 4; сведения о выпуске относятся к моменту подготовки PR #3.
+
 Текущий упрощённый scope PR #3: **существующие Bybit credentials + SQLite на
 существующем диске + существующий Grafana Cloud OTLP metrics pipeline**.
 Новые API keys/tokens, Loki, сервисы, серверы, Alloy и Prometheus не нужны.

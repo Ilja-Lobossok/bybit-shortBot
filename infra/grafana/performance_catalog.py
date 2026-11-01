@@ -25,7 +25,7 @@ def panel(ident, title, expr, *, kind="stat", unit="short", description="", x=0,
                         "legend": {"displayMode": "list", "placement": "bottom"}}}
 
 
-def dashboard():
+def _legacy_dashboard():
     panels = []
     labels = 'scope="${scope}",window="${window}",currency="USDT"'
     account = 'scope="account",currency="USDT"'
@@ -68,6 +68,7 @@ def dashboard():
     curve = add("Account equity and wallet history (USDT)", "equity", selector=account,
                 kind="timeseries", unit="currencyUSD", y=20, x=0, w=12, h=8,
                 description="Actual ~60s observations, no reconstructed history. Deposits change balances and are not trading profit.")
+    curve["fieldConfig"]["defaults"]["custom"] = {"axisSoftMin": 400, "axisSoftMax": 500}
     curve["targets"][0]["legendFormat"] = "Equity"
     curve["targets"].append({"refId": "B", "expr": query("wallet_balance", account), "datasource": DS,
                              "instant": False, "range": True, "legendFormat": "Wallet"})
@@ -106,10 +107,144 @@ def dashboard():
                                           ("Lost strategy observations", "dropped_events_total"))):
         add(title, name, y=56, x=index * 8, w=8)
     return {"uid": "bybit-trading-performance", "title": "Bybit ShortBot — Trading Dashboard", "schemaVersion": 39,
-            "version": 1, "editable": False, "refresh": "1m", "timezone": "browser", "tags": ["bybit", "trading", "metrics-only", "as-code"],
+            "version": 1, "editable": True, "refresh": "1m", "timezone": "browser", "tags": ["bybit", "trading", "metrics-only", "as-code"],
             "time": {"from": "now-24h", "to": "now"}, "panels": panels,
             "templating": {"list": [
                 {"name": "account", "type": "constant", "query": "__ACCOUNT_ALIAS__", "hide": 2},
                 {"name": "scope", "type": "custom", "query": "bot,account", "current": {"text": "bot", "value": "bot"}},
                 {"name": "window", "type": "custom", "query": "all,utc_day,7d,30d", "current": {"text": "all", "value": "all"}},
             ]}}
+
+
+def all_panels(value):
+    for item in value['panels']:
+        yield item
+        yield from all_panels(item) if item.get('panels') else ()
+
+
+def dashboard():
+    """User-facing portfolio first; closed KPIs/costs/diagnostics are collapsed."""
+    result = _legacy_dashboard()
+    old = {p['title']: p for p in result['panels']}
+    visible = []
+    account = 'scope="account",currency="USDT"'
+    keys = 'on(job,instance,account_alias,symbol,direction)'
+
+    def fresh(expr):
+        # Never disguise a retained stale cache as current portfolio P&L.
+        return '(' + expr + ') and on() (time() - ' + query('positions_timestamp_seconds') + ' < 150)'
+
+    def add(ident, title, name, *, x=0, y=0, w=6, h=5, kind='stat', money=True, description=''):
+        item = panel(ident, title, fresh(query(name, account)), x=x, y=y, w=w, h=h, kind=kind,
+                     unit='suffix:USDT' if money else 'short', description=description)
+        item['fieldConfig']['defaults'].update(decimals=2 if money else 0, noValue='Нет свежих данных')
+        item['fieldConfig']['defaults']['color'] = {'mode': 'thresholds'} if money else {'mode': 'fixed', 'fixedColor': 'blue'}
+        if money:
+            item['fieldConfig']['defaults']['thresholds'] = {'mode': 'absolute', 'steps': [{'value': None, 'color': 'red'}, {'value': 0, 'color': 'green'}]}
+        visible.append(item)
+        return item
+
+    def take(title, *, x, y, w=6, h=5, rename=None):
+        item = old.pop(title)
+        item['gridPos'] = dict(x=x, y=y, w=w, h=h)
+        if rename:
+            item['title'] = rename
+        visible.append(item)
+        return item
+
+    for x, title, rename in ((0, 'Account wallet balance (raw USDT)', 'Баланс · USDT'),
+                             (6, 'Account equity (USDT coin)', 'Equity · USDT')):
+        item = take(title, x=x, y=0, rename=rename)
+        item['fieldConfig']['defaults'].update(unit='suffix:USDT', decimals=2, noValue='Нет свежих данных')
+        item['fieldConfig']['defaults']['color'] = {'mode': 'fixed', 'fixedColor': 'blue'}
+        item['targets'][0]['expr'] = '(' + item['targets'][0]['expr'] + ') and on() (time() - ' + query('balance_timestamp_seconds') + ' < 150)'
+    add(100, 'P&L открытых позиций · с реализованной частью', 'open_combined_pnl', x=12,
+        description='Все открытые USDT-позиции субаккаунта: нереализованный P&L + уже отражённый реализованный P&L этих позиций. Комиссии повторно не вычитаются. Не история всей торговли и не отдельный накопитель Bybit TP/SL для всех фьючерсов; будущие расходы закрытия не включены.')
+    item = add(101, 'Открытые позиции · весь субаккаунт', 'positions', x=18, money=False)
+    item['targets'][0]['expr'] = fresh(query('positions', 'scope="account"'))
+    add(102, 'Нереализованный P&L · Mark', 'open_unrealized_pnl', y=5)
+    add(103, 'Реализованная часть открытых позиций', 'open_realized_pnl', x=6, y=5,
+        description='Уже отражённые комиссии, funding и результат частичных закрытий текущих позиций. Это не только funding.')
+    add(104, 'В плюсе', 'open_positive', x=12, y=5, w=3, money=False)
+    add(105, 'В минусе', 'open_negative', x=15, y=5, w=3, money=False)
+    add(106, 'Худший текущий убыток', 'open_worst_loss', x=18, y=5,
+        description='Минимум текущего P&L с уже реализованной частью среди открытых позиций. Ноль, если убыточных нет.')
+    add(107, 'Средний текущий убыток · только убыточные', 'open_average_loss', y=10,
+        description='Среднее отрицательных результатов текущих позиций с уже реализованной частью. Не среднее всех позиций; ноль, если убыточных нет.')
+    add(108, 'Худший наблюдавшийся убыток открытой позиции', 'position_worst_observed_loss', x=6, y=10,
+        description='Минимум P&L с реализованной частью по минутным наблюдениям текущих циклов. История начинается с включения сбора; внутриминутные экстремумы и старая история неизвестны. Не просадка equity и не ROI на маржу.')
+    age = take('Position snapshot age', x=12, y=10, rename='Возраст снимка позиций')
+    age['fieldConfig']['defaults'].update(decimals=0, noValue='Нет данных')
+    age['fieldConfig']['defaults']['thresholds'] = {'mode': 'absolute', 'steps': [{'value': None, 'color': 'green'}, {'value': 150, 'color': 'red'}]}
+    started = add(110, 'Наблюдения текущих позиций с', 'position_risk_first_timestamp_seconds', x=18, y=10, money=False)
+    started['targets'][0]['expr'] = '(' + started['targets'][0]['expr'] + ') * 1000'
+    started['fieldConfig']['defaults']['unit'] = 'dateTimeAsIso'
+
+    selection = account + ',symbol=~"${position_symbol:regex}"'
+    expression = '(' + current('position_combined_pnl', selection) + ' and ' + keys + ' (' + current('position_active', selection) + ' == 1)' \
+                 + ' and ' + keys + ' (time() - ' + current('position_observation_timestamp_seconds', selection) + ' < 150)' \
+                 + ' and ' + keys + ' (time() - ' + current('position_run_start_timestamp_seconds', selection) + ' >= 60))'
+    graph = add(111, 'Открытые позиции · реализованный + нереализованный P&L', 'open_combined_pnl', y=15, w=24, h=10, kind='timeseries',
+                description='Отдельная линия на символ/направление, все открытые USDT-позиции субаккаунта. Легенда скрыта; наведите на линию. Фильтр Все / Худшие 10 и выбор символов сверху. Новые наблюдаемые циклы получают минутный разрыв, закрытые линии заканчиваются. При пропущенном между снимками закрытии/повторном входе идентичность может быть неполной; старые и внутриминутные данные не восстанавливаются. Не точная копия накопителя Bybit All Futures TP/SL.')
+    graph['targets'][0].update(expr='bottomk(${position_limit}, ' + expression + ')', legendFormat='{{symbol}} · {{direction}}')
+    graph['options'].update(legend={'showLegend': False, 'displayMode': 'hidden', 'placement': 'bottom'}, tooltip={'mode': 'single', 'sort': 'none'})
+    graph['fieldConfig']['defaults']['custom'] = {'drawStyle': 'line', 'lineWidth': 1, 'fillOpacity': 0, 'spanNulls': False,
+                                                 'showPoints': 'never', 'thresholdsStyle': {'mode': 'line'}}
+    graph['fieldConfig']['defaults']['color'] = {'mode': 'palette-classic'}
+    graph['fieldConfig']['defaults']['thresholds'] = {'mode': 'absolute', 'steps': [{'value': None, 'color': 'red'}, {'value': 0, 'color': 'green'}]}
+    take('Account equity and wallet history (USDT)', x=0, y=25, w=12, h=8)
+    add(112, 'P&L текущего набора открытых позиций · история наблюдений', 'open_combined_pnl', x=12, y=25, w=12, h=8, kind='timeseries',
+        description='Сумма меняется при открытии и закрытии позиций. Это не накопленная прибыль всей торговли; закрытая позиция выходит из текущего набора.')
+    for x, title, rename in ((0, 'Watchlist', 'Watchlist'), (6, 'Pump candidates', 'Pump-кандидаты'),
+                             (12, 'Ready entry signals', 'Сигналы на вход'), (18, 'Blocked candidates', 'Пропущенные кандидаты')):
+        take(title, x=x, y=33, rename=rename)
+
+    def row(ident, title, children, y):
+        for index, item in enumerate(children):
+            item['gridPos'] = dict(x=index % 4 * 6, y=y + 1 + index // 4 * 5, w=6, h=5)
+            item['fieldConfig']['defaults']['noValue'] = 'Недостаточно подтверждённых данных'
+        visible.append(dict(id=ident, title=title, type='row', collapsed=True, gridPos=dict(x=0, y=y, w=24, h=1), panels=children))
+
+    status = panel(113, 'Статистика закрытий · статус', query('closed_statistics_status', 'scope="${scope}",window="${window}",currency="USDT"'))
+    status['fieldConfig']['defaults']['mappings'] = [{'type': 'value', 'options': {
+        '0': {'text': 'История неполная', 'color': 'orange'}, '1': {'text': 'Нет подтверждённых закрытий', 'color': 'blue'},
+        '2': {'text': 'Подтверждённая выборка', 'color': 'green'}}}]
+    closed_titles = ('Net closed P&L (verified cycles / selected scope)', 'Profitable cycles', 'Losing cycles',
+                     'Reconciled cycles (N, includes breakeven)', 'Win rate (verified cycles)',
+                     'Profit factor (undefined if no losses)', 'Average winning cycle', 'Average losing cycle',
+                     'No losses in verified sample (1 = PF undefined)')
+    closed = [status] + [old.pop(title) for title in closed_titles]
+    row(190, 'Закрытые сделки · подтверждённая история, выбранный scope/window', closed, 38)
+
+    costs = [old.pop(title) for title in ('Account trading fees (expense positive)', 'Account funding (received positive)',
+                                        'Account realized cash change (covered linear USDT)')]
+    cashflow = panel(114, 'Результат изменения цены · подтверждённый период', query('realized_price_change', account), unit='suffix:USDT')
+    costs.append(cashflow)
+    for ident, name, title in ((115, 'coverage_start_timestamp_seconds', 'Подтверждённый период с'),
+                               (116, 'coverage_end_timestamp_seconds', 'Подтверждённый период по')):
+        costs.append(panel(ident, title, '(' + query(name) + ') * 1000', unit='dateTimeAsIso'))
+    completeness = panel(117, 'Разбивка расходов · полнота', query('cost_breakdown_complete', account))
+    completeness['fieldConfig']['defaults']['mappings'] = [{'type': 'value', 'options': {
+        '0': {'text': 'Неполная история / классификация', 'color': 'orange'}, '1': {'text': 'Период сверён', 'color': 'green'}}}]
+    costs.append(completeness)
+    for item in costs:
+        item['description'] = 'Только подтверждённый период журнала, не вся жизнь текущих позиций. Funding: плюс — получение, минус — уплата. Комиссии: плюс — расход. Уже входят в реализованные результаты; повторно не вычитайте их из P&L.'
+    row(191, 'Комиссии и funding · за подтверждённый период', costs, 39)
+    diagnostics = list(old.values())
+    for ident, title, name in ((118, 'Не попало на график · лимит 200', 'position_graph_truncated'),
+                               (119, 'Разрывы наблюдения текущих позиций', 'position_observation_gaps'),
+                               (120, 'Полнота текущего P&L', 'open_money_complete')):
+        diagnostics.append(panel(ident, title, query(name, account)))
+    row(192, 'Диагностика данных · сверка, атрибуция и сбор', diagnostics, 40)
+    result['panels'] = visible
+    variables = result['templating']['list']
+    variables[1].update(label='Закрытые сделки: scope', current={'text': 'account', 'value': 'account'})
+    variables[2].update(label='Закрытые сделки: период', current={'text': 'utc_day', 'value': 'utc_day'})
+    variables.extend([
+        {'name': 'position_symbol', 'label': 'Позиции: символы', 'type': 'query', 'datasource': DS, 'refresh': 1,
+         'query': 'label_values(' + metric('position_active', account) + ', symbol)', 'multi': True,
+         'includeAll': True, 'allValue': '.*', 'current': {'text': 'All', 'value': '$__all'}, 'sort': 1},
+        {'name': 'position_limit', 'label': 'График позиций', 'type': 'custom', 'query': 'Все : 200,Худшие 10 : 10',
+         'current': {'text': 'Все', 'value': '200'}},
+    ])
+    return result

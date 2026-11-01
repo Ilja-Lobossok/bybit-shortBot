@@ -120,7 +120,11 @@ class ExportTests(Offline):
             self.assertEqual(set(names), {"bot_performance_" + name for name in NAMES})
             for metric in names.values():
                 for point in metric.data.data_points:
-                    self.assertFalse({"symbol", "order_id", "exec_id", "generation", "entity_key"} & set(point.attributes))
+                    self.assertFalse({"order_id", "exec_id", "generation", "entity_key", "run_id"} & set(point.attributes))
+                    if "symbol" in point.attributes:
+                        self.assertIn(metric.name, {"bot_performance_" + n for n in (
+                            "position_combined_pnl", "position_active", "position_observation_timestamp_seconds", "position_run_start_timestamp_seconds")})
+                        self.assertIn(point.attributes["direction"], ("long", "short"))
                     self.assertNotIn(TEST_TOKEN, str(point.attributes))
         finally:
             pipeline.close()

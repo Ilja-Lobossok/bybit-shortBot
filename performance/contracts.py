@@ -7,7 +7,7 @@ FIELDS = {
     "orders": "orderId symbol side positionIdx orderStatus qty cumExecQty avgPrice createdTime updatedTime stopOrderType createType",
     "closed_pnl": "orderId symbol side qty closedSize avgEntryPrice avgExitPrice closedPnl openFee closeFee createdTime updatedTime execType",
     "transactions": "id symbol currency category type transactionTime orderId tradeId cashFlow funding fee change cashBalance qty size",
-    "positions": "symbol side positionIdx size avgPrice markPrice positionValue unrealisedPnl curRealisedPnl takeProfit stopLoss updatedTime seq",
+    "positions": "symbol side positionIdx size avgPrice markPrice positionValue unrealisedPnl curRealisedPnl takeProfit stopLoss createdTime updatedTime seq",
 }
 DECIMALS = set("execQty execPrice execFee closedSize qty cumExecQty avgPrice avgEntryPrice avgExitPrice "
                "closedPnl openFee closeFee cashFlow funding fee change cashBalance size markPrice positionValue "

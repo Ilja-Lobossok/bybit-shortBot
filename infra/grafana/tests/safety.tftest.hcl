@@ -75,7 +75,7 @@ run "performance_metrics_only_by_default" {
     error_message = "Adding performance dashboard must not enable health alerts."
   }
   assert {
-    condition     = alltrue(flatten([for p in jsondecode(grafana_dashboard.trading_performance[0].config_json).panels : [for t in p.targets : t.datasource.type == "prometheus" && t.datasource.uid == "grafanacloud-prom"]]))
+    condition     = alltrue(flatten([for p in concat(jsondecode(grafana_dashboard.trading_performance[0].config_json).panels, flatten([for r in jsondecode(grafana_dashboard.trading_performance[0].config_json).panels : try(r.panels, [])])) : [for t in try(p.targets, []) : t.datasource.type == "prometheus" && t.datasource.uid == "grafanacloud-prom"]]))
     error_message = "Trading dashboard must require only the existing metrics datasource."
   }
 }
