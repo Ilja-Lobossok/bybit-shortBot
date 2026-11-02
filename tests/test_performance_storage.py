@@ -28,9 +28,9 @@ class StorageTests(Offline):
         values = seed(self.store)
         row = dict(values["closed_pnl"][0], closedPnl="11.2", updatedTime=6000)
         self.store.page("closed_pnl", 0, 7000, [row], 7000, final=True)
-        self.assertEqual(self.store.facts("closed_pnl")[0]["closedPnl"], "11.2")
+        self.assertEqual(next(x for x in self.store.facts("closed_pnl") if x['orderId'] == row['orderId'])["closedPnl"], "11.2")
         self.store.page("closed_pnl", 0, 7000, values["closed_pnl"], 7001, final=True)
-        self.assertEqual(self.store.facts("closed_pnl")[0]["closedPnl"], "11.2")
+        self.assertEqual(next(x for x in self.store.facts("closed_pnl") if x['orderId'] == row['orderId'])["closedPnl"], "11.2")
         self.assertEqual(self.store.db.execute("SELECT count(*) FROM revisions WHERE kind='closed_pnl'").fetchone()[0], 3)
 
     def test_bad_page_rolls_back_facts_and_checkpoint(self):

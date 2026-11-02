@@ -1208,13 +1208,575 @@
       }
     },
     {
+      "id": 121,
+      "title": "Закрытые ордера Bybit",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_orders{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 122,
+      "title": "Закрытия в плюс",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 38,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_wins{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 123,
+      "title": "Закрытия в минус",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 38,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_losses{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 124,
+      "title": "Результат закрытий · уже после расходов",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 38,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_net_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix:USDT",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 125,
+      "title": "Win rate · закрытые ордера",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_win_rate{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 126,
+      "title": "Profit factor · закрытые ордера",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 43,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_profit_factor{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 127,
+      "title": "Средний закрытый плюс",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 43,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_average_win{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix:USDT",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 128,
+      "title": "Средний закрытый минус",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 43,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_average_loss{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix:USDT",
+          "noValue": "Нет выборки / показатель не определён",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 129,
+      "title": "Закрытия Bybit · полнота периода",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_history_complete{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Загрузка / неполный период",
+                  "color": "orange"
+                },
+                "1": {
+                  "text": "Период загружен",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 130,
+      "title": "История закрытий запрашивается с",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 48,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(max((bot_performance_closed_order_history_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) * 1000",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 131,
+      "title": "Накопленный результат закрытий Bybit · с начала экспорта",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. История до начала загрузки неизвестна. Проверяйте полноту загрузки. График содержит только реальные OTLP-наблюдения. Загрузка старой истории корректирует сумму сейчас, но не создаёт вымышленные точки в прошлом.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max((bot_performance_closed_order_net_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"all\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": false,
+          "range": true,
+          "legendFormat": "Bybit closedPnl"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix:USDT",
+          "noValue": "unknown / incomplete"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
       "id": 190,
-      "title": "Закрытые сделки · подтверждённая история, выбранный scope/window",
+      "title": "Полные циклы · строгая сверка (отдельно от закрытых ордеров)",
       "type": "row",
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 38,
+        "y": 56,
         "w": 24,
         "h": 1
       },
@@ -1229,7 +1791,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 39,
+            "y": 57,
             "w": 6,
             "h": 5
           },
@@ -1297,7 +1859,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 39,
+            "y": 57,
             "w": 6,
             "h": 5
           },
@@ -1346,7 +1908,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 39,
+            "y": 57,
             "w": 6,
             "h": 5
           },
@@ -1395,7 +1957,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 39,
+            "y": 57,
             "w": 6,
             "h": 5
           },
@@ -1444,7 +2006,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 44,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -1493,7 +2055,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 44,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -1542,7 +2104,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 44,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -1591,7 +2153,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 44,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -1640,7 +2202,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 49,
+            "y": 67,
             "w": 6,
             "h": 5
           },
@@ -1689,7 +2251,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 49,
+            "y": 67,
             "w": 6,
             "h": 5
           },
@@ -1737,7 +2299,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 39,
+        "y": 57,
         "w": 24,
         "h": 1
       },
@@ -1752,7 +2314,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 40,
+            "y": 58,
             "w": 6,
             "h": 5
           },
@@ -1801,7 +2363,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 40,
+            "y": 58,
             "w": 6,
             "h": 5
           },
@@ -1850,7 +2412,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 40,
+            "y": 58,
             "w": 6,
             "h": 5
           },
@@ -1899,7 +2461,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 40,
+            "y": 58,
             "w": 6,
             "h": 5
           },
@@ -1948,7 +2510,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 45,
+            "y": 63,
             "w": 6,
             "h": 5
           },
@@ -1997,7 +2559,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 45,
+            "y": 63,
             "w": 6,
             "h": 5
           },
@@ -2046,7 +2608,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 45,
+            "y": 63,
             "w": 6,
             "h": 5
           },
@@ -2109,7 +2671,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 40,
+        "y": 58,
         "w": 24,
         "h": 1
       },
@@ -2124,7 +2686,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 41,
+            "y": 59,
             "w": 6,
             "h": 5
           },
@@ -2186,7 +2748,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 41,
+            "y": 59,
             "w": 6,
             "h": 5
           },
@@ -2248,7 +2810,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 41,
+            "y": 59,
             "w": 6,
             "h": 5
           },
@@ -2310,7 +2872,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 41,
+            "y": 59,
             "w": 6,
             "h": 5
           },
@@ -2359,7 +2921,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 46,
+            "y": 64,
             "w": 6,
             "h": 5
           },
@@ -2408,7 +2970,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 46,
+            "y": 64,
             "w": 6,
             "h": 5
           },
@@ -2457,7 +3019,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 46,
+            "y": 64,
             "w": 6,
             "h": 5
           },
@@ -2506,7 +3068,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 46,
+            "y": 64,
             "w": 6,
             "h": 5
           },
@@ -2555,7 +3117,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 51,
+            "y": 69,
             "w": 6,
             "h": 5
           },
@@ -2604,7 +3166,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 51,
+            "y": 69,
             "w": 6,
             "h": 5
           },
@@ -2653,7 +3215,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 51,
+            "y": 69,
             "w": 6,
             "h": 5
           },
@@ -2702,7 +3264,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 51,
+            "y": 69,
             "w": 6,
             "h": 5
           },
@@ -2751,7 +3313,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 56,
+            "y": 74,
             "w": 6,
             "h": 5
           },
@@ -2800,7 +3362,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 56,
+            "y": 74,
             "w": 6,
             "h": 5
           },
@@ -2849,7 +3411,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 56,
+            "y": 74,
             "w": 6,
             "h": 5
           },
@@ -2898,7 +3460,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 56,
+            "y": 74,
             "w": 6,
             "h": 5
           },
@@ -2947,7 +3509,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 61,
+            "y": 79,
             "w": 6,
             "h": 5
           },
@@ -2996,7 +3558,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 61,
+            "y": 79,
             "w": 6,
             "h": 5
           },
@@ -3045,7 +3607,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 61,
+            "y": 79,
             "w": 6,
             "h": 5
           },
@@ -3094,7 +3656,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 61,
+            "y": 79,
             "w": 6,
             "h": 5
           },
@@ -3143,7 +3705,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 66,
+            "y": 84,
             "w": 6,
             "h": 5
           },
@@ -3192,7 +3754,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 66,
+            "y": 84,
             "w": 6,
             "h": 5
           },
@@ -3250,17 +3812,17 @@
           "text": "account",
           "value": "account"
         },
-        "label": "Закрытые сделки: scope"
+        "label": "Закрытия: scope"
       },
       {
         "name": "window",
         "type": "custom",
         "query": "all,utc_day,7d,30d",
         "current": {
-          "text": "utc_day",
-          "value": "utc_day"
+          "text": "all",
+          "value": "all"
         },
-        "label": "Закрытые сделки: период"
+        "label": "Закрытия: период"
       },
       {
         "name": "position_symbol",

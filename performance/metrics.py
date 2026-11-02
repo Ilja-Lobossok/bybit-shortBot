@@ -23,6 +23,9 @@ NAMES = (
     "position_combined_pnl", "position_active", "position_observation_timestamp_seconds", "position_run_start_timestamp_seconds",
     "position_worst_observed_loss", "position_average_observed_loss", "position_graph_truncated", "position_observation_gaps",
     "position_risk_first_timestamp_seconds", "cost_breakdown_complete", "realized_price_change", "closed_statistics_status",
+    "closed_orders", "closed_order_net_pnl", "closed_order_wins", "closed_order_losses", "closed_order_breakeven",
+    "closed_order_win_rate", "closed_order_profit_factor", "closed_order_average_win", "closed_order_average_loss",
+    "closed_order_history_complete", "closed_order_history_start_timestamp_seconds",
 )
 
 
@@ -45,6 +48,14 @@ def points(store, view, summary, runtime, now):
         add("cycles", stats["n"], **labels)
         add("profit_factor_no_losses", int(stats["profit_factor_status"] == "no_losses"), **labels)
         add("kpi_window_complete", stats["coverage_complete"], **labels)
+    for stats in summary.get('close_statistics', ()):
+        labels = dict(scope=stats['scope'], window=stats['window'], currency='USDT')
+        add('closed_orders', stats['n'], **labels)
+        for field in ('net_pnl', 'wins', 'losses', 'breakeven', 'win_rate', 'profit_factor', 'average_win', 'average_loss'):
+            add('closed_order_' + field, stats[field], **labels)
+        add('closed_order_history_complete', stats['coverage_complete'], **labels)
+    close_origin = store.meta('closed_history_origin_ms')
+    add('closed_order_history_start_timestamp_seconds', int(close_origin) / 1000 if close_origin is not None else None)
     if summary["drawdown"]:
         add("drawdown_ratio", summary["drawdown"]["current"], scope="account", currency="USDT")
         add("max_drawdown_ratio", summary["drawdown"]["maximum"], scope="account", currency="USDT")

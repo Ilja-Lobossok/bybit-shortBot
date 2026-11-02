@@ -156,3 +156,50 @@ class Collector:
                     break
                 seen.add(following)
                 cursor = following
+        self.closed_backfill(now)
+
+    def closed_backfill(self, now):
+        """Recover old closes without replaying all funding/execution history.
+
+        <=4 GET pages per history tick, each window <=7 days. Independent durable
+        cursor; replay is deduplicated. The ordinary rolling sync stays active.
+        """
+        end = now - 120_000
+        key = 'closed_pnl_backfill'
+        origin = int(self.store.meta('closed_history_origin_ms', max(0, end - max(30, self.lookback_days) * DAY)))
+        with self.store.db:
+            self.store.set_meta('closed_history_origin_ms', origin)
+        start = int(self.store.meta('closed_backfill_next_ms', origin))
+        finish = min(end, start + 7 * DAY - 1)
+        resume = self.store.db.execute('SELECT * FROM sync_cursors WHERE kind=?', (key,)).fetchone()
+        cursor = ''
+        if resume:
+            start, finish, cursor = resume['start_ms'], resume['end_ms'], resume['cursor']
+        if start > end:
+            return
+        seen = {cursor} if cursor else set()
+        for _ in range(4):
+            params = dict(category='linear', startTime=start, endTime=finish, limit=100)
+            if cursor:
+                params['cursor'] = cursor
+            try:
+                response = self.reader.get('closed_pnl', params)
+            except ReadError:
+                with self.store.db:
+                    self.store.db.execute('DELETE FROM sync_cursors WHERE kind=?', (key,))
+                raise
+            following = response['result'].get('nextPageCursor', '')
+            if following in seen:
+                raise ReadError('Repeated close backfill cursor')
+            self.store.page('closed_pnl', start, finish, response['result']['list'], now,
+                            final=not bool(following), cursor=following, cursor_key=key)
+            if not following:
+                with self.store.db:
+                    self.store.set_meta('closed_backfill_next_ms', finish + 1)
+                start, cursor, seen = finish + 1, '', set()
+                finish = min(end, start + 7 * DAY - 1)
+                if start > end:
+                    return
+                continue
+            seen.add(following)
+            cursor = following

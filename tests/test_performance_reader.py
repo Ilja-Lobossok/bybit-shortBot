@@ -105,7 +105,7 @@ class ReaderTests(Offline):
         reader.get.side_effect = lambda kind, params: reply(cursor="page-" + str(int(params.get("cursor", "page-0").split("-")[-1]) + 1))
         collector = Collector(reader, self.store, lookback_days=30)
         collector.history(40 * DAY)
-        self.assertEqual(reader.get.call_count, 16)  # max 4 pages x 4 endpoints
+        self.assertEqual(reader.get.call_count, 20)  # 4 sources + independent bounded close backfill
         self.assertFalse(self.store.covered("orders", 10 * DAY, 11 * DAY))
         saved = self.store.db.execute("SELECT cursor FROM sync_cursors WHERE kind='orders'").fetchone()[0]
         self.assertEqual(saved, "page-4")
@@ -116,7 +116,7 @@ class ReaderTests(Offline):
             return reply()
         reader.get.side_effect = finish
         collector.history(41 * DAY)
-        self.assertTrue(all(params["cursor"] == "page-4" for kind, params in calls))
+        self.assertTrue(all(params["cursor"] == "page-4" for kind, params in calls[:5]))
         self.assertIsNotNone(self.store.meta("watermark:orders"))
         self.assertTrue(all(params["endTime"] - params["startTime"] < 7 * DAY for kind, params in calls))
         tx_params = next(params for kind, params in calls if kind == "transactions")

@@ -14,6 +14,18 @@ def reconcile(store, now):
     closes = {x["orderId"]: x for x in store.facts("closed_pnl") if x["symbol"].endswith("USDT")}
     transactions = store.facts("transactions")
     owners = {x["order_id"]: dict(x) for x in store.db.execute("SELECT * FROM ownership")}
+    close_records = []
+    for row in closes.values():
+        # A closing order is exact exchange-reported money even when its entry
+        # predates the journal. It is NOT a reconstructed flat-to-flat cycle.
+        if row['execType'] not in ('Trade', 'BustTrade') or D(row['closedSize']) <= 0:
+            continue
+        owner = owners.get(row['orderId'], {})
+        close_records.append(dict(entity_key='close:' + row['orderId'], symbol=row['symbol'],
+                                  net_pnl=row['closedPnl'], money_status='exchange_reported',
+                                  attribution_status='bot' if owner.get('source') == 'confirmed_close' and
+                                  owner.get('symbol') == row['symbol'] and row['side'] == 'Buy' else 'unknown',
+                                  closed_at_ms=int(row['updatedTime']), unit='closing_order'))
     fills = defaultdict(list)
     groups = defaultdict(list)
     unresolved = 0
@@ -59,6 +71,11 @@ def reconcile(store, now):
 
     # Expose each exchange close record even if a full entry/cycle is unavailable.
     used = {ident for trade in trades for ident in trade["close_order_ids"]}
+    for trade in trades + list(active.values()):
+        if trade['attribution_status'] == 'bot':
+            for row in close_records:
+                if row['entity_key'][6:] in trade['close_order_ids']:
+                    row['attribution_status'] = 'bot'
     unmatched = [dict(entity_key="close:" + x["orderId"], symbol=x["symbol"], net_pnl=x["closedPnl"],
                       money_status="exchange_reported", attribution_status="unknown", reason="unknown",
                       closed_at_ms=None, source_updated_ms=x["updatedTime"],
@@ -95,7 +112,7 @@ def reconcile(store, now):
             counts.append((scope, outcome, value))
         for reason in ("tp", "sl", "unknown", "mixed", "liquidation", "adl"):
             counts.append((scope, reason, sum(close_reason([orders[i]]) == reason for i in exits if i in orders)))
-    return {"trades": trades, "unmatched_closes": unmatched, "positions": positions,
+    return {"trades": trades, "unmatched_closes": unmatched, "positions": positions, "close_records": close_records,
             "pending": pending, "coverage_start_ms": origin, "coverage_end_ms": end,
             "history_status": "covered" if complete else "incomplete", "transactions": transactions,
             "unattributed": len(unmatched) + sum(x["attribution_status"] != "bot" for x in trades),
@@ -126,7 +143,9 @@ def _cycle(store, events, orders, closes, transactions, owners, idx, open_cycle=
     for event in events:
         by_time[event["execTime"]].add(event["side"])
     ordered = all(len(sides) == 1 for sides in by_time.values())
-    attribution = "bot" if proof and (local_flat or tx_flat) and coverage and complete_fills and ordered else "unknown"
+    close_proof = bool(close_ids) and all(owners.get(i, {}).get('source') == 'confirmed_close' and
+                                         owners[i]['symbol'] == symbol for i in close_ids)
+    attribution = "bot" if (proof or (close_proof and not open_cycle)) and (local_flat or tx_flat) and coverage and complete_fills and ordered else "unknown"
     quantity = sum((D(x["execQty"]) for x in opening), ZERO)
     entry = sum((D(x["execQty"]) * D(x["execPrice"]) for x in opening), ZERO) / quantity
     exit_qty = sum((D(x["execQty"]) for x in closing), ZERO)
@@ -183,6 +202,18 @@ def summaries(store, view, now):
             stats.update(scope=scope, window=window, coverage_complete=int(start >= view["coverage_start_ms"] and view["history_status"] == "covered"),
                          complete_cycles_only=1)
             result.append(stats)
+    close_stats = []
+    close_origin = int(store.meta('closed_history_origin_ms', view['coverage_start_ms']))
+    close_end = min(now - 120_000, int(store.meta('watermark:closed_pnl', 0)))
+    for window, start in dict(windows, all=close_origin).items():
+        for scope in ('account', 'bot'):
+            rows = [x for x in view['close_records'] if start <= x['closed_at_ms'] <= now and
+                    (scope == 'account' or x['attribution_status'] == 'bot')]
+            stats = statistics(rows, accepted_statuses=('exchange_reported',))
+            stats.update(scope=scope, window=window,
+                         coverage_complete=int(start >= close_origin and close_end >= start and
+                                               store.covered('closed_pnl', start, close_end)))
+            close_stats.append(stats)
     dd = drawdown(json.loads(row[0])["equity"] for row in store.db.execute("SELECT payload FROM account_snapshots ORDER BY received_ms"))
     latest_time, snapshot = store.latest_snapshot()
     tx = transaction_totals(view["transactions"], start=view["coverage_start_ms"], end=view["coverage_end_ms"])
@@ -204,6 +235,6 @@ def summaries(store, view, now):
                 abs(balance_delta - cash_delta) <= TOLERANCE):
             cash_adjusted = str(D(anchor_value["equity"]) - D(first_value["equity"]) - D(flows["nontrading"]))
             adjusted_at = anchor_time
-    return {"statistics": result, "snapshot": snapshot, "snapshot_ms": latest_time,
+    return {"statistics": result, "close_statistics": close_stats, "snapshot": snapshot, "snapshot_ms": latest_time,
             "drawdown": dd, "transaction_totals": tx, "cash_adjusted_profit": cash_adjusted,
             "cash_adjusted_as_of_ms": adjusted_at}

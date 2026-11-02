@@ -67,7 +67,8 @@ class DashboardTests(Offline):
         main = [p for p in dashboard['panels'] if p['type'] != 'row']
         self.assertIn('scope="account"', next(p for p in main if p['id'] == 101)['targets'][0]['expr'])
         self.assertIn('open_combined_pnl', next(p for p in main if p['id'] == 100)['targets'][0]['expr'])
-        self.assertNotIn('profit_factor', json.dumps(main))
+        self.assertIn('closed_order_profit_factor', json.dumps(main))
+        self.assertIn('Частичные выходы', next(p for p in main if p['id'] == 121)['description'])
         graph = next(p for p in main if p['id'] == 111)
         self.assertFalse(graph['options']['legend']['showLegend'])
         self.assertFalse(graph['fieldConfig']['defaults']['custom']['spanNulls'])
