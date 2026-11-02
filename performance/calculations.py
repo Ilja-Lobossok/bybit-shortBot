@@ -9,8 +9,8 @@ NONTRADING_TYPES = frozenset(("TRANSFER_IN", "TRANSFER_OUT", "BONUS", "BONUS_REC
                               "BORROW", "REPAY", "BONUS_TRANSFER_IN", "BONUS_TRANSFER_OUT"))
 
 
-def statistics(trades):
-    values = [D(t["net_pnl"]) for t in trades if t["money_status"] == "reconciled"]
+def statistics(trades, *, accepted_statuses=("reconciled",)):
+    values = [D(t["net_pnl"]) for t in trades if t["money_status"] in accepted_statuses]
     wins = [v for v in values if v > 0]
     losses = [v for v in values if v < 0]
     return {"n": len(values), "wins": len(wins), "losses": len(losses),

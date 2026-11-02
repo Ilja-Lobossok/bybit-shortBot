@@ -87,7 +87,7 @@ def identity(kind, row):
 
 def timestamp(kind, row):
     key = {"executions": "execTime", "transactions": "transactionTime", "orders": "createdTime",
-           "closed_pnl": "createdTime"}[kind]
+           "closed_pnl": "updatedTime"}[kind]
     return int(row[key])
 
 

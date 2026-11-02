@@ -33,6 +33,10 @@ class Runtime(Mailbox):
         from performance.reconciliation import reconcile, summaries
         from performance.metrics import points
         self.degraded = 0
+        try:
+            store.refresh_tracker_evidence(self.disk_path / 'state.json', now)
+        except Exception:
+            self.errors += 1  # ownership unavailable; keep account results
         for event in self.take():
             try:
                 store.observe(event)

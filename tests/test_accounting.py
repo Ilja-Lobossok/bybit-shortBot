@@ -97,10 +97,16 @@ class ClosedTradeTests(unittest.TestCase):
 
     def test_missing_partial_or_ambiguous_history_waits(self):
         for rows in ([], [close_record(closedSize="3")], [close_record(closedSize="10")],
-                     [close_record(side="Sell")], [close_record(createdTime="999")],
+                     [close_record(side="Sell")], [close_record(updatedTime="999")],
                      [close_record(updatedTime="5000")], [close_record(avgEntryPrice="2")]):
             with self.subTest(rows=rows):
                 self.assertIsNone(self.aggregate(rows))
+
+    def test_stop_created_before_entry_but_executed_in_holding_period_is_counted(self):
+        trade = self.aggregate([close_record(createdTime='1', closedPnl='-21.2156646')])
+        self.assertEqual(trade.pnl, -21.2156646)
+        self.assertEqual(trade.closed_at_ms, 3000)
+        self.assertEqual(trade.order_ids, ['close-1'])
 
     def test_zero_or_invalid_exit_is_never_reported(self):
         for value in ("0", "NaN", "-1"):
@@ -220,6 +226,18 @@ class BotAccountingTests(unittest.TestCase):
         restored = RiskManager.from_state(reloaded.risk_state, 410)
         self.assertEqual(len(restored.trades_history), 1)
         self.assertEqual(restored.coin_stats['RLCUSDT']['trades'], 1)
+
+    def test_old_stop_order_loss_is_recorded_and_notified_once_without_orders(self):
+        self.bot.client.get_positions.return_value = [dict(size='0', avgPrice='0')]
+        self.bot.client.get_closed_pnl.return_value = [close_record(createdTime='1', closedPnl='-21.2156646')]
+        self.bot.check_positions()
+        self.bot.tracker = PositionTracker(self.bot.tracker.state_file)
+        self.bot.check_positions()
+        self.bot.notifier.send_trade_close.assert_called_once()
+        self.assertEqual(self.bot.notifier.send_trade_close.call_args.args[3], -21.2156646)
+        self.assertEqual(self.bot.risk_manager.trades_history[0]['pnl_usdt'], -21.2156646)
+        self.bot.client.place_order.assert_not_called()
+        self.bot.client.cancel_order.assert_not_called()
 
     def test_failed_atomic_save_keeps_position_and_accounting(self):
         self.bot.client.get_positions.return_value = []

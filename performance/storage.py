@@ -102,8 +102,9 @@ class Store:
                             (kind, ident, value.get("symbol", ""), timestamp(kind, value), now, revision, payload))
             self.db.execute("INSERT INTO revisions VALUES(?,?,?,?,?)", (kind, ident, revision, now, payload))
 
-    def page(self, kind, start, end, rows, now, *, final, cursor=""):
+    def page(self, kind, start, end, rows, now, *, final, cursor="", cursor_key=None):
         self.check_budget()
+        cursor_key = cursor_key or kind
         with self.db:
             self.ingest(kind, rows, now)
             self.db.execute("INSERT INTO sync_windows VALUES(?,?,?,?,?) ON CONFLICT(kind,start_ms,end_ms) "
@@ -111,9 +112,43 @@ class Store:
                             (kind, start, end, "complete" if final else "incomplete", now if final else None))
             if final:
                 self.set_meta("watermark:" + kind, max(end, int(self.meta("watermark:" + kind, 0))))
-                self.db.execute("DELETE FROM sync_cursors WHERE kind=?", (kind,))
+                self.db.execute("DELETE FROM sync_cursors WHERE kind=?", (cursor_key,))
             elif cursor:
-                self.db.execute("INSERT OR REPLACE INTO sync_cursors VALUES(?,?,?,?)", (kind, start, end, cursor))
+                self.db.execute("INSERT OR REPLACE INTO sync_cursors VALUES(?,?,?,?)", (cursor_key, start, end, cursor))
+
+    def refresh_tracker_evidence(self, path, now):
+        """Read atomic state copies as ownership evidence, never as money.
+
+        Recover dropped entry observations and IDs of previously confirmed
+        bot closes. No writes to state, risk history or trading objects.
+        """
+        from performance.contracts import safe_symbol, safe_token
+        path = Path(path)
+        if not path.exists():
+            return
+        with path.open('rb') as source:
+            raw = source.read(4 * 1024**2 + 1)
+        if len(raw) > 4 * 1024**2:
+            raise ValueError('Tracker evidence exceeds read budget')
+        state = json.loads(raw)
+        rows = []
+        positions = state.get('positions', {})
+        history = state.get('risk_state', {}).get('trades_history', [])
+        if not isinstance(positions, dict) or not isinstance(history, list) or len(positions) > 2000 or len(history) > 1000:
+            raise ValueError('Invalid tracker evidence')
+        for symbol, value in positions.items():
+            if value.get('entry_order_id'):
+                rows.append((safe_token(value['entry_order_id']), safe_symbol(symbol), 0, now, 'tracker_entry'))
+        for value in history:
+            ids = value.get('order_ids', [])
+            if not isinstance(ids, list) or len(ids) > 100:
+                raise ValueError('Invalid close evidence')
+            for ident in ids:
+                rows.append((safe_token(ident), safe_symbol(value['symbol']), 0, now, 'confirmed_close'))
+        self.check_budget()
+        with self.db:
+            for row in rows:
+                self.db.execute('INSERT OR IGNORE INTO ownership VALUES(?,?,?,?,?)', row)
 
     def facts(self, kind):
         rows = self.db.execute("SELECT payload FROM facts WHERE kind=? ORDER BY event_ms,id LIMIT 20001", (kind,)).fetchall()

@@ -79,9 +79,10 @@ class ClosedTrade:
                 continue  # Buy closes this bot's Sell/short positions.
             if row.get("execType") not in ("Trade", "BustTrade"):
                 continue
-            if not start_ms <= int(row["createdTime"]) <= end_ms:
-                continue
-            if int(row["updatedTime"]) > end_ms:
+            # Attached SL orders can be created when the position opens, long
+            # before they execute. Only the close/update time belongs in the
+            # holding-period filter. Qty and entry checks below still apply.
+            if not start_ms <= int(row["updatedTime"]) <= end_ms:
                 continue
             order_id = row["orderId"]
             if order_id in unique and unique[order_id] != row:

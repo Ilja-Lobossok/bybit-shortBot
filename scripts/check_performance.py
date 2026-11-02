@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULES = ("tests.test_monitoring_otel", "tests.test_monitoring_runtime", "tests.test_monitoring_bot", "tests.test_accounting",
            "tests.test_dashboard_as_code", "tests.test_performance_storage", "tests.test_performance_reconciliation",
            "tests.test_performance_reader", "tests.test_performance_exporters", "tests.test_performance_observations",
-           "tests.test_performance_dashboard", "tests.test_open_positions", "tests.test_performance_otlp_payload")
+           "tests.test_performance_dashboard", "tests.test_open_positions", "tests.test_performance_otlp_payload", "tests.test_closed_orders")
 
 
 def main():

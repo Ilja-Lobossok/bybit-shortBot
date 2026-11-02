@@ -199,6 +199,43 @@ def dashboard():
                              (12, 'Ready entry signals', 'Сигналы на вход'), (18, 'Blocked candidates', 'Пропущенные кандидаты')):
         take(title, x=x, y=33, rename=rename)
 
+    close_labels = 'scope="${scope}",window="${window}",currency="USDT"'
+    close_description = ('Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. '
+                         'Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. '
+                         'Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. '
+                         'Период выбирается отдельно сверху: all / UTC day / 7d / 30d; даты графика не меняют этот период. '
+                         'История до начала загрузки неизвестна. Проверяйте полноту загрузки.')
+    for index, (title, name, unit) in enumerate((
+        ('Закрытые ордера Bybit', 'closed_orders', 'short'),
+        ('Закрытия в плюс', 'closed_order_wins', 'short'),
+        ('Закрытия в минус', 'closed_order_losses', 'short'),
+        ('Результат закрытий · уже после расходов', 'closed_order_net_pnl', 'suffix:USDT'),
+        ('Win rate · закрытые ордера', 'closed_order_win_rate', 'percentunit'),
+        ('Profit factor · закрытые ордера', 'closed_order_profit_factor', 'short'),
+        ('Средний закрытый плюс', 'closed_order_average_win', 'suffix:USDT'),
+        ('Средний закрытый минус', 'closed_order_average_loss', 'suffix:USDT'),
+    )):
+        item = panel(121 + index, title, query(name, close_labels), unit=unit,
+                     x=index % 4 * 6, y=38 + index // 4 * 5, description=close_description)
+        item['fieldConfig']['defaults'].update(decimals=2, noValue='Нет выборки / показатель не определён')
+        visible.append(item)
+    history = panel(129, 'Закрытия Bybit · полнота периода', query('closed_order_history_complete', close_labels),
+                    x=0, y=48, description=close_description)
+    history['fieldConfig']['defaults']['mappings'] = [{'type': 'value', 'options': {
+        '0': {'text': 'Загрузка / неполный период', 'color': 'orange'},
+        '1': {'text': 'Период загружен', 'color': 'green'}}}]
+    visible.append(history)
+    since = panel(130, 'История закрытий запрашивается с', '(' + query('closed_order_history_start_timestamp_seconds') + ') * 1000',
+                  unit='dateTimeAsIso', x=6, y=48, description=close_description)
+    visible.append(since)
+    close_curve = panel(131, 'Накопленный результат закрытий Bybit · с начала экспорта',
+                        query('closed_order_net_pnl', 'scope="${scope}",window="all",currency="USDT"'),
+                        kind='timeseries', unit='suffix:USDT', x=12, y=48, w=12, h=8,
+                        description=close_description + ' График содержит только реальные OTLP-наблюдения. '
+                        'Загрузка старой истории корректирует сумму сейчас, но не создаёт вымышленные точки в прошлом.')
+    close_curve['targets'][0]['legendFormat'] = 'Bybit closedPnl'
+    visible.append(close_curve)
+
     def row(ident, title, children, y):
         for index, item in enumerate(children):
             item['gridPos'] = dict(x=index % 4 * 6, y=y + 1 + index // 4 * 5, w=6, h=5)
@@ -214,7 +251,7 @@ def dashboard():
                      'Profit factor (undefined if no losses)', 'Average winning cycle', 'Average losing cycle',
                      'No losses in verified sample (1 = PF undefined)')
     closed = [status] + [old.pop(title) for title in closed_titles]
-    row(190, 'Закрытые сделки · подтверждённая история, выбранный scope/window', closed, 38)
+    row(190, 'Полные циклы · строгая сверка (отдельно от закрытых ордеров)', closed, 56)
 
     costs = [old.pop(title) for title in ('Account trading fees (expense positive)', 'Account funding (received positive)',
                                         'Account realized cash change (covered linear USDT)')]
@@ -229,17 +266,17 @@ def dashboard():
     costs.append(completeness)
     for item in costs:
         item['description'] = 'Только подтверждённый период журнала, не вся жизнь текущих позиций. Funding: плюс — получение, минус — уплата. Комиссии: плюс — расход. Уже входят в реализованные результаты; повторно не вычитайте их из P&L.'
-    row(191, 'Комиссии и funding · за подтверждённый период', costs, 39)
+    row(191, 'Комиссии и funding · за подтверждённый период', costs, 57)
     diagnostics = list(old.values())
     for ident, title, name in ((118, 'Не попало на график · лимит 200', 'position_graph_truncated'),
                                (119, 'Разрывы наблюдения текущих позиций', 'position_observation_gaps'),
                                (120, 'Полнота текущего P&L', 'open_money_complete')):
         diagnostics.append(panel(ident, title, query(name, account)))
-    row(192, 'Диагностика данных · сверка, атрибуция и сбор', diagnostics, 40)
+    row(192, 'Диагностика данных · сверка, атрибуция и сбор', diagnostics, 58)
     result['panels'] = visible
     variables = result['templating']['list']
-    variables[1].update(label='Закрытые сделки: scope', current={'text': 'account', 'value': 'account'})
-    variables[2].update(label='Закрытые сделки: период', current={'text': 'utc_day', 'value': 'utc_day'})
+    variables[1].update(label='Закрытия: scope', current={'text': 'account', 'value': 'account'})
+    variables[2].update(label='Закрытия: период', current={'text': 'all', 'value': 'all'})
     variables.extend([
         {'name': 'position_symbol', 'label': 'Позиции: символы', 'type': 'query', 'datasource': DS, 'refresh': 1,
          'query': 'label_values(' + metric('position_active', account) + ', symbol)', 'multi': True,
