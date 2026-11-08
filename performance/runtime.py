@@ -29,6 +29,11 @@ class Runtime(Mailbox):
     def stop(self):
         self._stop.set()  # No flush/join on trading path.
 
+    @staticmethod
+    def history_interval(store, now):
+        end = min(int(store.meta('watermark:' + kind, 0)) for kind in ('executions', 'orders', 'closed_pnl', 'transactions'))
+        return 60_000 if now - end > 900_000 else 300_000
+
     def tick(self, store, collector, logs, now, *, history=False):
         from performance.reconciliation import reconcile, summaries
         from performance.metrics import points
@@ -139,13 +144,15 @@ class Runtime(Mailbox):
                             self.dropped += 1
                             self.errors += 1
                     if now >= next_collect:
+                        # Reclaim optional detail before any financial write, even
+                        # when the previous pass reached the storage budget.
+                        if now >= next_maintenance:
+                            store.maintenance(now)
+                            next_maintenance = now + (60_000 if store.observation_pressure() else 300_000)
                         self.tick(store, collector, logs, now, history=now >= next_history)
                         next_collect = now + 60_000
                         if now >= next_history:
-                            next_history = now + 300_000
-                    if now >= next_maintenance:
-                        store.maintenance(now)
-                        next_maintenance = now + 3_600_000
+                            next_history = now + self.history_interval(store, now)
                 except Exception:
                     self.errors += 1
                     self.degraded = 1

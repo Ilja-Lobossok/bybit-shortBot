@@ -18,4 +18,25 @@ def scenarios(series, scenario):
     tests = [{'expr': 'sum(' + expr + ') or vector(0)', 'eval_time': str(minute) + 'm',
               'exp_samples': [{'labels': '{}', 'value': value}]}
              for minute, value in ((0, 0), (1, 5), (2, 0), (3, 0), (4, 7), (7, 0), (8, 9))]
-    return [scenario('position graph: first observation, close, re-entry, stale cache and recovery', inputs, expressions=tests)]
+    cases = [scenario('position graph: first observation, close, re-entry, stale cache and recovery', inputs, expressions=tests)]
+    panels = {p['id']: p for p in performance_catalog.dashboard()['panels']}
+    state = resolve(panels[132]['targets'][0]['expr'])
+    closes = resolve(panels[123]['targets'][0]['expr'])
+    balance = [0,60,60,60,60] + [i*60 for i in range(5,35)]
+    monitor = [
+        series('bot_performance_process_start_timestamp_seconds',[0]*35,**common),
+        series('bot_performance_balance_timestamp_seconds',balance,**common),
+        series('bot_performance_positions_timestamp_seconds',balance,**common),
+        series('bot_performance_coverage_end_timestamp_seconds',[0]*35,**common),
+        series('bot_performance_closed_history_timestamp_seconds',[0]*35,**common),
+        series('bot_performance_storage_degraded',[0,0,1]+[0]*32,**common),
+        series('bot_performance_closed_order_losses',[2]*35,**dict(common,scope='bot',window='all',currency='USDT')),
+    ]
+    checks = [{'expr':state,'eval_time':str(m)+'m','exp_samples':[{'labels':'{}','value':v}]}
+              for m,v in ((0,2),(1,2),(2,0),(4,0),(5,2),(31,1))]
+    checks += [dict(expr=closes,eval_time='1m',exp_samples=[dict(labels='{}',value=2)]),
+               dict(expr=closes,eval_time='31m',exp_samples=[])]
+    cases.append(scenario('monitoring status: storage failure, stale cache, recovery and history catchup',monitor,expressions=checks))
+    cases.append(scenario('performance monitoring never exported is visibly unhealthy',[],expressions=[
+        dict(expr=state,eval_time='1m',exp_samples=[dict(labels='{}',value=0)])]))
+    return cases

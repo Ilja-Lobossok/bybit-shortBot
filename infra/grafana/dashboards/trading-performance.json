@@ -899,7 +899,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_equity{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_equity{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - max((bot_performance_balance_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) < 150)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -910,7 +910,7 @@
         },
         {
           "refId": "B",
-          "expr": "max((bot_performance_wallet_balance{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_wallet_balance{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"account\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - max((bot_performance_balance_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) < 150)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1217,7 +1217,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 38,
+        "y": 41,
         "w": 6,
         "h": 5
       },
@@ -1225,7 +1225,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_orders{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_orders{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1267,7 +1267,7 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 38,
+        "y": 41,
         "w": 6,
         "h": 5
       },
@@ -1275,7 +1275,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_wins{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_wins{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1317,7 +1317,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 38,
+        "y": 41,
         "w": 6,
         "h": 5
       },
@@ -1325,7 +1325,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_losses{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_losses{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1367,7 +1367,7 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 38,
+        "y": 41,
         "w": 6,
         "h": 5
       },
@@ -1375,7 +1375,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_net_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_net_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1417,7 +1417,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 43,
+        "y": 46,
         "w": 6,
         "h": 5
       },
@@ -1425,7 +1425,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_win_rate{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_win_rate{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1467,7 +1467,7 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 43,
+        "y": 46,
         "w": 6,
         "h": 5
       },
@@ -1475,7 +1475,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_profit_factor{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_profit_factor{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1517,7 +1517,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 43,
+        "y": 46,
         "w": 6,
         "h": 5
       },
@@ -1525,7 +1525,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_average_win{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_average_win{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1567,7 +1567,7 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 43,
+        "y": 46,
         "w": 6,
         "h": 5
       },
@@ -1575,7 +1575,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_average_loss{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_average_loss{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1609,7 +1609,7 @@
     },
     {
       "id": 129,
-      "title": "Закрытия Bybit · полнота периода",
+      "title": "Закрытия Bybit · полнота и свежесть",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -1617,7 +1617,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 48,
+        "y": 51,
         "w": 6,
         "h": 5
       },
@@ -1625,7 +1625,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_history_complete{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_history_complete{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"${window}\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) * on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < bool 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1681,7 +1681,7 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 48,
+        "y": 51,
         "w": 6,
         "h": 5
       },
@@ -1730,7 +1730,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 48,
+        "y": 51,
         "w": 12,
         "h": 8
       },
@@ -1738,7 +1738,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max((bot_performance_closed_order_net_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"all\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+          "expr": "(max((bot_performance_closed_order_net_pnl{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\",scope=\"${scope}\",window=\"all\",currency=\"USDT\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) and on() (time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))) < 1800)",
           "datasource": {
             "type": "prometheus",
             "uid": "__METRICS_DATASOURCE_UID__"
@@ -1776,7 +1776,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 56,
+        "y": 59,
         "w": 24,
         "h": 1
       },
@@ -1791,7 +1791,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 57,
+            "y": 60,
             "w": 6,
             "h": 5
           },
@@ -1859,7 +1859,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 57,
+            "y": 60,
             "w": 6,
             "h": 5
           },
@@ -1908,7 +1908,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 57,
+            "y": 60,
             "w": 6,
             "h": 5
           },
@@ -1957,7 +1957,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 57,
+            "y": 60,
             "w": 6,
             "h": 5
           },
@@ -2006,7 +2006,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 62,
+            "y": 65,
             "w": 6,
             "h": 5
           },
@@ -2055,7 +2055,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 62,
+            "y": 65,
             "w": 6,
             "h": 5
           },
@@ -2104,7 +2104,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 62,
+            "y": 65,
             "w": 6,
             "h": 5
           },
@@ -2153,7 +2153,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 62,
+            "y": 65,
             "w": 6,
             "h": 5
           },
@@ -2202,7 +2202,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 67,
+            "y": 70,
             "w": 6,
             "h": 5
           },
@@ -2251,7 +2251,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 67,
+            "y": 70,
             "w": 6,
             "h": 5
           },
@@ -2299,7 +2299,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 57,
+        "y": 60,
         "w": 24,
         "h": 1
       },
@@ -2314,7 +2314,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 58,
+            "y": 61,
             "w": 6,
             "h": 5
           },
@@ -2363,7 +2363,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 58,
+            "y": 61,
             "w": 6,
             "h": 5
           },
@@ -2412,7 +2412,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 58,
+            "y": 61,
             "w": 6,
             "h": 5
           },
@@ -2461,7 +2461,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 58,
+            "y": 61,
             "w": 6,
             "h": 5
           },
@@ -2510,7 +2510,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 63,
+            "y": 66,
             "w": 6,
             "h": 5
           },
@@ -2559,7 +2559,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 63,
+            "y": 66,
             "w": 6,
             "h": 5
           },
@@ -2608,7 +2608,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 63,
+            "y": 66,
             "w": 6,
             "h": 5
           },
@@ -2671,7 +2671,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 58,
+        "y": 61,
         "w": 24,
         "h": 1
       },
@@ -2686,7 +2686,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 59,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -2748,7 +2748,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 59,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -2810,7 +2810,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 59,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -2872,7 +2872,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 59,
+            "y": 62,
             "w": 6,
             "h": 5
           },
@@ -2921,7 +2921,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 64,
+            "y": 67,
             "w": 6,
             "h": 5
           },
@@ -2970,7 +2970,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 64,
+            "y": 67,
             "w": 6,
             "h": 5
           },
@@ -3019,7 +3019,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 64,
+            "y": 67,
             "w": 6,
             "h": 5
           },
@@ -3068,7 +3068,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 64,
+            "y": 67,
             "w": 6,
             "h": 5
           },
@@ -3117,7 +3117,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 69,
+            "y": 72,
             "w": 6,
             "h": 5
           },
@@ -3166,7 +3166,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 69,
+            "y": 72,
             "w": 6,
             "h": 5
           },
@@ -3215,7 +3215,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 69,
+            "y": 72,
             "w": 6,
             "h": 5
           },
@@ -3264,7 +3264,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 69,
+            "y": 72,
             "w": 6,
             "h": 5
           },
@@ -3313,7 +3313,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 74,
+            "y": 77,
             "w": 6,
             "h": 5
           },
@@ -3362,7 +3362,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 74,
+            "y": 77,
             "w": 6,
             "h": 5
           },
@@ -3411,7 +3411,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 74,
+            "y": 77,
             "w": 6,
             "h": 5
           },
@@ -3460,7 +3460,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 74,
+            "y": 77,
             "w": 6,
             "h": 5
           },
@@ -3509,7 +3509,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 79,
+            "y": 82,
             "w": 6,
             "h": 5
           },
@@ -3558,7 +3558,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 79,
+            "y": 82,
             "w": 6,
             "h": 5
           },
@@ -3607,7 +3607,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 79,
+            "y": 82,
             "w": 6,
             "h": 5
           },
@@ -3656,7 +3656,7 @@
           },
           "gridPos": {
             "x": 18,
-            "y": 79,
+            "y": 82,
             "w": 6,
             "h": 5
           },
@@ -3705,7 +3705,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 84,
+            "y": 87,
             "w": 6,
             "h": 5
           },
@@ -3754,7 +3754,7 @@
           },
           "gridPos": {
             "x": 6,
-            "y": 84,
+            "y": 87,
             "w": 6,
             "h": 5
           },
@@ -3792,8 +3792,370 @@
               "placement": "bottom"
             }
           }
+        },
+        {
+          "id": 134,
+          "title": "SQLite · занятые страницы / бюджет",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 87,
+            "w": 6,
+            "h": 5
+          },
+          "description": "",
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max((bot_performance_storage_used_bytes{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) / max((bot_performance_storage_budget_bytes{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "__METRICS_DATASOURCE_UID__"
+              },
+              "instant": true,
+              "range": false,
+              "legendFormat": "__auto"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "noValue": "Недостаточно подтверждённых данных"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          }
+        },
+        {
+          "id": 135,
+          "title": "SQLite · выделено с WAL",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 87,
+            "w": 6,
+            "h": 5
+          },
+          "description": "",
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max((bot_performance_storage_bytes{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "__METRICS_DATASOURCE_UID__"
+              },
+              "instant": true,
+              "range": false,
+              "legendFormat": "__auto"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "noValue": "Недостаточно подтверждённых данных"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          }
+        },
+        {
+          "id": 136,
+          "title": "Подробные наблюдения · лимит 20 000",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 92,
+            "w": 6,
+            "h": 5
+          },
+          "description": "",
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max((bot_performance_storage_detail_rows{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "__METRICS_DATASOURCE_UID__"
+              },
+              "instant": true,
+              "range": false,
+              "legendFormat": "__auto"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Недостаточно подтверждённых данных"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          }
+        },
+        {
+          "id": 137,
+          "title": "ID наблюдений · лимит 50 000",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 92,
+            "w": 6,
+            "h": 5
+          },
+          "description": "",
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max((bot_performance_storage_dedup_rows{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "__METRICS_DATASOURCE_UID__"
+              },
+              "instant": true,
+              "range": false,
+              "legendFormat": "__auto"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Недостаточно подтверждённых данных"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          }
+        },
+        {
+          "id": 138,
+          "title": "Отставание полной сверки",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 92,
+            "w": 6,
+            "h": 5
+          },
+          "description": "",
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "time() - max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"}))))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "__METRICS_DATASOURCE_UID__"
+              },
+              "instant": true,
+              "range": false,
+              "legendFormat": "__auto"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "Недостаточно подтверждённых данных"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          }
+        },
+        {
+          "id": 139,
+          "title": "Отставание истории закрытий",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 92,
+            "w": 6,
+            "h": 5
+          },
+          "description": "",
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "time() - (max((bot_performance_closed_history_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) or on() max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "__METRICS_DATASOURCE_UID__"
+              },
+              "instant": true,
+              "range": false,
+              "legendFormat": "__auto"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "Недостаточно подтверждённых данных"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          }
         }
       ]
+    },
+    {
+      "id": 132,
+      "title": "Мониторинг · свежесть и запись",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__METRICS_DATASOURCE_UID__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 3
+      },
+      "description": "0: снимки старше 150s, ошибка записи или нет данных. 1: свежие снимки, история догружается. 2: свежие снимки и сверка не старше 30m. Полнота старого периода не доказывает текущую свежесть.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(((time() - max((bot_performance_balance_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) < bool 150) * on() (time() - max((bot_performance_positions_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) < bool 150) * on() (max((bot_performance_storage_degraded{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) == bool 0)) * on() (1 + ((time() - max((bot_performance_coverage_end_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} and on(job,instance) (bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"} == on() group_left() max(bot_performance_process_start_timestamp_seconds{bot=\"bybit-shortbot\",component=\"performance\",environment=\"__ENVIRONMENT__\",account_alias=\"${account}\"})))) < bool 1800) or on() vector(0)))) or on() vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "__METRICS_DATASOURCE_UID__"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "unknown / incomplete",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Снимки устарели / ошибка записи",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "Снимки свежие · история догружается",
+                  "color": "orange"
+                },
+                "2": {
+                  "text": "Данные свежие",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
     }
   ],
   "templating": {

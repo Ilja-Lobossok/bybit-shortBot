@@ -51,6 +51,7 @@ from live.order_manager import OrderManager
 from live.position_tracker import PositionTracker
 from live.telegram_notifier import TelegramNotifier
 from live.accounting import AccountBalance, ClosedTrade
+from live.contract_availability import ContractAvailability
 
 # =====================================
 # РИСК МЕНЕДЖЕР
@@ -76,6 +77,9 @@ class ShortBot:
             testnet=os.getenv("BYBIT_TESTNET", "false").lower() == "true"
         )
         self.client.monitoring = self.monitoring
+        self.contract_availability = ContractAvailability(
+            os.path.join(self.config.data_dir, 'contract_availability.json'),
+            log_path=os.path.join(self.config.data_dir, 'logs', 'bot.log'))
 
         self.tracker = PositionTracker(os.path.join(self.config.data_dir, "state.json"))
         self.performance = start_performance(_PERFORMANCE_ENV, self.config.data_dir)
@@ -356,6 +360,8 @@ class ShortBot:
 
     def open_position(self, symbol: str, data: Dict[str, Any]):
         try:
+            if not self._entry_available(symbol):
+                return
             # общие предохранители
             if symbol in self.tracker.positions:
                 self._performance("decision", symbol=symbol, reason="tracked")
@@ -519,8 +525,30 @@ class ShortBot:
             logger.info(f"   Фактическая сумма входа: ${actual_qty * actual_entry:.2f}")
             
         except Exception as e:
+            self._record_entry_rejection(symbol, e)
             self._observe("fail_cycle")
             logger.error(f"❌ Ошибка открытия позиции {symbol}: {e}", exc_info=True)
+
+    def _entry_available(self, symbol):
+        gate = getattr(self, 'contract_availability', None)
+        try:
+            allowed = gate is None or gate.allows_entry(symbol)
+        except Exception:
+            logger.warning('Проверка доступности не завершена; используется штатная обработка биржи')
+            return True
+        if not allowed:
+            self._performance('decision', symbol=symbol, reason='agreement_required')
+            logger.info('Пропуск %s: Bybit требует соглашение; новые входы временно недоступны', symbol)
+            return False
+        return True
+
+    def _record_entry_rejection(self, symbol, error):
+        try:
+            gate = getattr(self, 'contract_availability', None)
+            if gate is not None:
+                gate.record(symbol, error)
+        except Exception:
+            logger.warning('Не удалось сохранить доступность контракта; детали скрыты')
 
     def check_positions(self):
         for symbol, position in list(self.tracker.positions.items()):
