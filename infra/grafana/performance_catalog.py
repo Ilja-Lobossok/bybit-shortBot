@@ -220,6 +220,9 @@ def dashboard():
         item = panel(121 + index, title, '(' + query(name, close_labels) + ') and on() ' + close_fresh, unit=unit,
                      x=index % 4 * 6, y=38 + index // 4 * 5, description=close_description)
         item['fieldConfig']['defaults'].update(decimals=2, noValue='Нет выборки / показатель не определён')
+        if unit == 'suffix:USDT':
+            item['fieldConfig']['defaults']['color'] = {'mode': 'thresholds'}
+            item['fieldConfig']['defaults']['thresholds'] = {'mode': 'absolute', 'steps': [{'value': None, 'color': 'red'}, {'value': 0, 'color': 'green'}]}
         visible.append(item)
     history = panel(129, 'Закрытия Bybit · полнота и свежесть', '(' + query('closed_order_history_complete', close_labels) + ') * on() (time() - ' + close_source + ' < bool 1800)',
                     x=0, y=48, description=close_description)
