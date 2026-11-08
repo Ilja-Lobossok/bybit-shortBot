@@ -101,7 +101,14 @@ class ObservationTests(Offline):
 
         class RemoveObservations(ast.NodeTransformer):
             def visit_Expr(self, node):
-                if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute) and node.value.func.attr.startswith("_performance"):
+                if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute) and (node.value.func.attr.startswith("_performance") or node.value.func.attr == '_record_entry_rejection'):
+                    return None
+                return self.generic_visit(node)
+            def visit_If(self, node):
+                if (isinstance(node.test, ast.UnaryOp) and isinstance(node.test.op, ast.Not) and
+                    isinstance(node.test.operand, ast.Call) and isinstance(node.test.operand.func, ast.Attribute) and
+                    node.test.operand.func.attr == '_entry_available' and len(node.body) == 1 and
+                    isinstance(node.body[0], ast.Return) and node.body[0].value is None and not node.orelse):
                     return None
                 return self.generic_visit(node)
         old = next(x for x in baseline.body if isinstance(x, ast.ClassDef) and x.name == "ShortBot")

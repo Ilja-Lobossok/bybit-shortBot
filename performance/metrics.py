@@ -26,6 +26,7 @@ NAMES = (
     "closed_orders", "closed_order_net_pnl", "closed_order_wins", "closed_order_losses", "closed_order_breakeven",
     "closed_order_win_rate", "closed_order_profit_factor", "closed_order_average_win", "closed_order_average_loss",
     "closed_order_history_complete", "closed_order_history_start_timestamp_seconds",
+    "closed_history_timestamp_seconds", "storage_used_bytes", "storage_budget_bytes", "storage_detail_rows", "storage_dedup_rows",
 )
 
 
@@ -56,6 +57,8 @@ def points(store, view, summary, runtime, now):
         add('closed_order_history_complete', stats['coverage_complete'], **labels)
     close_origin = store.meta('closed_history_origin_ms')
     add('closed_order_history_start_timestamp_seconds', int(close_origin) / 1000 if close_origin is not None else None)
+    closed_end = store.meta('watermark:closed_pnl')
+    add('closed_history_timestamp_seconds', int(closed_end) / 1000 if closed_end is not None else None)
     if summary["drawdown"]:
         add("drawdown_ratio", summary["drawdown"]["current"], scope="account", currency="USDT")
         add("max_drawdown_ratio", summary["drawdown"]["maximum"], scope="account", currency="USDT")
@@ -103,6 +106,10 @@ def points(store, view, summary, runtime, now):
         value = store.meta(key)
         add(name + "_timestamp_seconds", int(value) / 1000 if value else None)
     add("storage_bytes", store.size())
+    add('storage_used_bytes', store.used_size())
+    add('storage_budget_bytes', store.max_bytes)
+    add('storage_detail_rows', store.db.execute('SELECT count(*) FROM strategy_events').fetchone()[0])
+    add('storage_dedup_rows', store.db.execute('SELECT count(*) FROM observations').fetchone()[0])
     for name, attr in (("storage_degraded", "degraded"), ("dropped_events_total", "dropped")):
         add(name, getattr(runtime, attr))
     add("errors_total", runtime.errors + runtime.export_errors)

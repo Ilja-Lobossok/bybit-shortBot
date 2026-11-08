@@ -200,6 +200,8 @@ def dashboard():
         take(title, x=x, y=33, rename=rename)
 
     close_labels = 'scope="${scope}",window="${window}",currency="USDT"'
+    close_source = '(' + query('closed_history_timestamp_seconds') + ' or on() ' + query('coverage_end_timestamp_seconds') + ')'
+    close_fresh = '(time() - ' + close_source + ' < 1800)'
     close_description = ('Источник — уникальные закрытые ордера Bybit closedPnl, включая убытки. '
                          'Частичные выходы разными ордерами считаются отдельно; это не число полных циклов. '
                          'Комиссии и funding уже включены. Scope account — весь субаккаунт; bot — только доказанные ID. '
@@ -215,11 +217,11 @@ def dashboard():
         ('Средний закрытый плюс', 'closed_order_average_win', 'suffix:USDT'),
         ('Средний закрытый минус', 'closed_order_average_loss', 'suffix:USDT'),
     )):
-        item = panel(121 + index, title, query(name, close_labels), unit=unit,
+        item = panel(121 + index, title, '(' + query(name, close_labels) + ') and on() ' + close_fresh, unit=unit,
                      x=index % 4 * 6, y=38 + index // 4 * 5, description=close_description)
         item['fieldConfig']['defaults'].update(decimals=2, noValue='Нет выборки / показатель не определён')
         visible.append(item)
-    history = panel(129, 'Закрытия Bybit · полнота периода', query('closed_order_history_complete', close_labels),
+    history = panel(129, 'Закрытия Bybit · полнота и свежесть', '(' + query('closed_order_history_complete', close_labels) + ') * on() (time() - ' + close_source + ' < bool 1800)',
                     x=0, y=48, description=close_description)
     history['fieldConfig']['defaults']['mappings'] = [{'type': 'value', 'options': {
         '0': {'text': 'Загрузка / неполный период', 'color': 'orange'},
@@ -229,7 +231,7 @@ def dashboard():
                   unit='dateTimeAsIso', x=6, y=48, description=close_description)
     visible.append(since)
     close_curve = panel(131, 'Накопленный результат закрытий Bybit · с начала экспорта',
-                        query('closed_order_net_pnl', 'scope="${scope}",window="all",currency="USDT"'),
+                        '(' + query('closed_order_net_pnl', 'scope="${scope}",window="all",currency="USDT"') + ') and on() ' + close_fresh,
                         kind='timeseries', unit='suffix:USDT', x=12, y=48, w=12, h=8,
                         description=close_description + ' График содержит только реальные OTLP-наблюдения. '
                         'Загрузка старой истории корректирует сумму сейчас, но не создаёт вымышленные точки в прошлом.')
@@ -272,8 +274,35 @@ def dashboard():
                                (119, 'Разрывы наблюдения текущих позиций', 'position_observation_gaps'),
                                (120, 'Полнота текущего P&L', 'open_money_complete')):
         diagnostics.append(panel(ident, title, query(name, account)))
+    diagnostics.extend([
+        panel(134, 'SQLite · занятые страницы / бюджет', query('storage_used_bytes') + ' / ' + query('storage_budget_bytes'), unit='percentunit'),
+        panel(135, 'SQLite · выделено с WAL', query('storage_bytes'), unit='bytes'),
+        panel(136, 'Подробные наблюдения · лимит 20 000', query('storage_detail_rows')),
+        panel(137, 'ID наблюдений · лимит 50 000', query('storage_dedup_rows')),
+        panel(138, 'Отставание полной сверки', 'time() - ' + query('coverage_end_timestamp_seconds'), unit='s'),
+        panel(139, 'Отставание истории закрытий', 'time() - ' + close_source, unit='s'),
+    ])
     row(192, 'Диагностика данных · сверка, атрибуция и сбор', diagnostics, 58)
     result['panels'] = visible
+    # A retained financial cache is not a current account sample. Preserve the
+    # timestamp of the actual collection at every historical evaluation step.
+    for item in all_panels(result):
+        if item['title'] == 'Account equity and wallet history (USDT)':
+            for target in item['targets']:
+                target['expr'] = '(' + target['expr'] + ') and on() (time() - ' + query('balance_timestamp_seconds') + ' < 150)'
+        if item['gridPos']['y'] >= 38:
+            item['gridPos']['y'] += 3
+    good_snapshots = ('(time() - ' + query('balance_timestamp_seconds') + ' < bool 150) * on() '
+                      '(time() - ' + query('positions_timestamp_seconds') + ' < bool 150) * on() '
+                      '(' + query('storage_degraded') + ' == bool 0)')
+    status_expr = '((' + good_snapshots + ') * on() (1 + ((time() - ' + query('coverage_end_timestamp_seconds') + ' < bool 1800) or on() vector(0)))) or on() vector(0)'
+    status_panel = panel(132, 'Мониторинг · свежесть и запись', status_expr, x=0, y=38, w=24, h=3,
+                         description='0: снимки старше 150s, ошибка записи или нет данных. 1: свежие снимки, история догружается. 2: свежие снимки и сверка не старше 30m. Полнота старого периода не доказывает текущую свежесть.')
+    status_panel['fieldConfig']['defaults']['mappings'] = [{'type':'value','options':{
+        '0':{'text':'Снимки устарели / ошибка записи','color':'red'},
+        '1':{'text':'Снимки свежие · история догружается','color':'orange'},
+        '2':{'text':'Данные свежие','color':'green'}}}]
+    result['panels'].append(status_panel)
     variables = result['templating']['list']
     variables[1].update(label='Закрытия: scope', current={'text': 'account', 'value': 'account'})
     variables[2].update(label='Закрытия: период', current={'text': 'all', 'value': 'all'})

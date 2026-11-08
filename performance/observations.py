@@ -9,7 +9,8 @@ from uuid import uuid4
 REASONS = frozenset(("not_usdt", "invalid_market", "turnover", "pump", "near_high", "candidate",
                      "cooldown", "tracked", "watching", "missing_klines", "ttl", "new_high", "stall",
                      "below_tp", "ready", "position_limit", "balance", "risk", "exchange_position",
-                     "funds", "missing_price", "min_order", "accepted", "pending", "order_error", "none"))
+                     "funds", "missing_price", "min_order", "accepted", "pending", "order_error", "agreement_required", "none"))
+AGGREGATED_REASONS = frozenset(('not_usdt', 'invalid_market', 'turnover', 'pump', 'near_high'))
 KEYS = ("PERFORMANCE_ENABLED", "PERFORMANCE_READONLY_API_ENABLED", "PERFORMANCE_LOG_EXPORT_ENABLED",
         "MONITORING_ENABLED", "BYBIT_API_KEY", "BYBIT_API_SECRET", "BYBIT_TESTNET",
         "PERFORMANCE_HISTORY_DAYS", "PERFORMANCE_ACCOUNT_ALIAS", "PERFORMANCE_GRAFANA_LOGS_TOKEN",
@@ -72,6 +73,7 @@ class Mailbox:
         self.run_id = uuid4().hex
         self.seq = 0
         self.dropped = 0
+        self.aggregates = {}  # <=5 finite reasons, independent of detail capacity
 
     def emit(self, kind, body):
         # Every allowed field is copied here, before the mutable tracker changes.
@@ -128,6 +130,19 @@ class Mailbox:
             return
         try:
             self.seq += 1
+            if kind == 'decision' and copied['reason'] in AGGREGATED_REASONS:
+                reason = copied['reason']
+                event = self.aggregates.get(reason)
+                if event is None:
+                    event = {'id': self.run_id + ':' + str(self.seq), 'time_ms': 0,
+                             'kind': 'decision', 'body': {'reason': reason, 'count': 0}}
+                    self.aggregates[reason] = event
+                if event['body']['count'] >= 1_000_000_000:
+                    self.dropped += 1
+                    return
+                event['body']['count'] += 1
+                event['time_ms'] = int(time.time() * 1000)
+                return
             if len(self.events) == self.events.maxlen:
                 self.dropped += 1
                 return  # drop new; no unbounded queue or blocked order
@@ -140,4 +155,6 @@ class Mailbox:
         with self.lock:
             events = list(self.events)
             self.events.clear()
+            events.extend(self.aggregates.values())
+            self.aggregates.clear()
         return events

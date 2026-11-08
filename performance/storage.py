@@ -10,6 +10,9 @@ import sqlite3
 import time
 
 DAY = 86_400_000
+DETAIL_LIMIT = 20_000
+OBSERVATION_LIMIT = 50_000
+WAL_HEADROOM = 32 * 1024**2
 
 
 def encoded(value):
@@ -54,6 +57,10 @@ class Store:
         elif version != 2:
             self.close()
             raise ValueError("Unsupported performance schema")
+        # Bound main-file allocation while allowing its free pages to be reused.
+        pages = self.db.execute('PRAGMA page_count').fetchone()[0]
+        page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
+        self.db.execute('PRAGMA max_page_count=' + str(max(pages, 1, max_bytes // page_size)))
 
     def close(self):
         self.db.close()
@@ -71,8 +78,16 @@ class Store:
                                              Path(str(self.path) + "-shm")) if p.exists())
 
     def check_budget(self):
-        if self.size() >= self.max_bytes or shutil.disk_usage(self.path.parent).free < self.reserve_bytes:
+        if (self.used_size() >= self.max_bytes or self.size() > self.max_bytes + WAL_HEADROOM + 32768 or
+                shutil.disk_usage(self.path.parent).free < self.reserve_bytes):
             raise BudgetExceeded("Performance storage budget reached")
+
+    def used_size(self):
+        pages = self.db.execute('PRAGMA page_count').fetchone()[0]
+        free = self.db.execute('PRAGMA freelist_count').fetchone()[0]
+        page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
+        auxiliary = sum(p.stat().st_size for p in (Path(str(self.path) + '-wal'), Path(str(self.path) + '-shm')) if p.exists())
+        return (pages - free) * page_size + auxiliary
 
     def bind_account(self, fingerprint):
         existing = self.meta("account_fingerprint")
@@ -203,6 +218,8 @@ class Store:
     def observe(self, event):
         """Only already-filtered observations, never HTTP dumps or risk history as money."""
         self.check_budget()
+        if event['time_ms'] < int(self.meta('observation_floor_ms', 0)):
+            return  # expired IDs must not become new decision counts on replay
         with self.db:
             if not self.db.execute("INSERT OR IGNORE INTO observations VALUES(?,?)",
                                    (event["id"], event["time_ms"])).rowcount:
@@ -226,26 +243,63 @@ class Store:
                                     (item["symbol"], encoded(item)))
                 self.set_meta("strategy_success_ms", event["time_ms"])
                 self.set_meta("strategy_counts", encoded(body.get("counts", {})))
-            self.db.execute("INSERT INTO strategy_events VALUES(?,?,?,?,?,?)",
-                            (event["id"], event["time_ms"], event["kind"], body.get("symbol", ""),
-                             body.get("reason", "none"), encoded(body)))
+            from performance.observations import AGGREGATED_REASONS
+            aggregated = event['kind'] == 'decision' and body['reason'] in AGGREGATED_REASONS
+            if not aggregated:
+                self.db.execute("INSERT INTO strategy_events VALUES(?,?,?,?,?,?)",
+                                (event["id"], event["time_ms"], event["kind"], body.get("symbol", ""),
+                                 body.get("reason", "none"), encoded(body)))
             if event["kind"] == "decision":
+                count = body.get('count', 1)
+                if type(count) is not int or not 1 <= count <= 1_000_000_000 or (count != 1 and not aggregated):
+                    raise ValueError('Invalid decision aggregate')
                 key = "decision:" + body["reason"]
-                self.set_meta(key, int(self.meta(key, 0)) + 1)
-                if body["reason"] not in ("not_usdt", "invalid_market", "turnover", "pump", "near_high"):
+                self.set_meta(key, int(self.meta(key, 0)) + count)
+                if not aggregated:
                     row = self.db.execute("SELECT payload FROM strategy_current WHERE entity_key=?", (body["symbol"],)).fetchone()
                     value = json.loads(row[0]) if row else {}
                     value.update(body, decision_ms=event["time_ms"])
                     self.db.execute("INSERT OR REPLACE INTO strategy_current VALUES(?,?)", (body["symbol"], encoded(value)))
 
+    def observation_pressure(self):
+        return any(self.db.execute('SELECT count(*) FROM ' + table).fetchone()[0] > limit
+                   for table, limit in (('strategy_events', DETAIL_LIMIT), ('observations', OBSERVATION_LIMIT)))
+
+    def _trim_observations(self, table, limit, cutoff, deadline):
+        # Rowid order avoids repeatedly sorting the legacy half-million-row
+        # dedup table. Each transaction deletes <=500 rows; WAL can checkpoint.
+        excess = max(0, self.db.execute('SELECT count(*) FROM ' + table).fetchone()[0] - limit)
+        for _ in range(4096):
+            if time.monotonic() >= deadline:
+                break
+            if shutil.disk_usage(self.path.parent).free < self.reserve_bytes:
+                break
+            wal = Path(str(self.path) + '-wal')
+            if wal.exists() and wal.stat().st_size > WAL_HEADROOM:
+                self.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                if wal.exists() and wal.stat().st_size > WAL_HEADROOM:
+                    break  # long reader: defer optional cleanup, don't grow WAL
+            if excess:
+                rows = self.db.execute('SELECT rowid,event_ms FROM ' + table + ' ORDER BY rowid LIMIT ?', (min(500, excess),)).fetchall()
+            else:
+                rows = self.db.execute('SELECT rowid,event_ms FROM ' + table + ' WHERE event_ms<? LIMIT 500', (cutoff,)).fetchall()
+            if not rows:
+                break
+            with self.db:
+                self.db.execute('DELETE FROM ' + table + ' WHERE rowid IN (' + ','.join('?' for _ in rows) + ')', [r[0] for r in rows])
+                if table == 'observations':
+                    self.set_meta('observation_floor_ms', max(int(self.meta('observation_floor_ms', 0)), max(r[1] for r in rows) + 1))
+            excess = max(0, excess - len(rows))
+
     def maintenance(self, now):
         # Only observation detail and export scratch expire. Financial facts and
         # equity samples are never silently deleted; cap pauses collection instead.
+        deadline = time.monotonic() + 10
+        self._trim_observations('strategy_events', DETAIL_LIMIT, now - DAY, deadline)
+        self._trim_observations('observations', OBSERVATION_LIMIT, now - 7 * DAY, deadline)
         with self.db:
             from performance.open_positions import prune
             prune(self, now)
-            self.db.execute("DELETE FROM strategy_events WHERE event_ms<?", (now - 7 * DAY,))
-            self.db.execute("DELETE FROM observations WHERE event_ms<?", (now - 7 * DAY,))
             self.db.execute("DELETE FROM sync_windows WHERE status='incomplete' AND end_ms<?", (now - 14 * DAY,))
         self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
