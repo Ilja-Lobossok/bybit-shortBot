@@ -1389,7 +1389,23 @@
         "defaults": {
           "unit": "suffix:USDT",
           "noValue": "Нет выборки / показатель не определён",
-          "decimals": 2
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 0,
+                "color": "green"
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -1539,7 +1555,23 @@
         "defaults": {
           "unit": "suffix:USDT",
           "noValue": "Нет выборки / показатель не определён",
-          "decimals": 2
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 0,
+                "color": "green"
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -1589,7 +1621,23 @@
         "defaults": {
           "unit": "suffix:USDT",
           "noValue": "Нет выборки / показатель не определён",
-          "decimals": 2
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 0,
+                "color": "green"
+              }
+            ]
+          }
         },
         "overrides": []
       },
